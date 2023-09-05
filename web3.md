@@ -162,14 +162,80 @@ var web3 = new Web3(Web3.givenProvider || "wss://goerli.infura.io/ws/v3/cb7e63cf
 
 1.创建账户
 
+script 中写逻辑
+
 ```vue
+<script setup>
+// 导包
+import { ref } from 'vue';
+import Web3 from 'web3';
 // 创建账户 参数-密码 可不填 
 const account = web3.eth.accounts.create('123456');
 // 账户对象 
 console.log(account);
-// 地址 "0x4C2a92E7CC53Ea722FC9B816b108D87ccB701aDc"
+// 获取地址 "0x4C2a92E7CC53Ea722FC9B816b108D87ccB701aDc"
 console.log(account.address);
-// 私钥 "0xc4c81dd272f1b73682da85b93ba4bd0318dff02f2e2d8f35bb4672ef97ee4c62"
+// 获取私钥 "0xc4c81dd272f1b73682da85b93ba4bd0318dff02f2e2d8f35bb4672ef97ee4c62"
 console.log(account.privateKey);
+</script>
+```
+
+2.余额获取
+
+script 中写逻辑
+
+```vue
+<script setup>
+// 先固定一个账户
+const address = ref('0x0aD25a2B10C80DCabBd2baF3edf93aE752112018');
+
+// 获取余额 异步获取需要使用 then
+const mount = ref(-1);
+web3.eth.getBalance(address.value).then((res) => {
+    mount.value = res;
+});
+</script>
+```
+
+template 中可直接使用显示
+
+```vue
+<template>
+    <h1>
+        账户信息
+    </h1>
+    <p>
+        地址：{{ address }}
+    </p>
+    <p>
+        私钥：0x56484b333f965e581cf7576a32a73f1cf8483def6ed8f555ab060a3148902cad
+    </p>
+    <p>
+        余额：{{ mount }}
+    </p>
+</template>
+```
+
+3.单位转换
+
+单位：wei 是最小的单位
+
+- Kwei(Babbage) = 10**3 Wei
+- Mwei(Lovelace) = 10**6 Wei
+- Gwei(Shannon) = 10**9 Wei
+- Microether(Szabo) = 10**12 Wei
+- Milliether(Finney) = 10**15 Wei
+- Ether = 10**18 Wei 最小单位
+- **Ether = 10\**9 Gwei** 小狐狸 gas 使用计量单位
+
+可使用 web3 对象 或者静态方法
+
+```vue
+// Eth 转 wei
+const num1 = Web3.utils.toWei("0.31","wei");
+const num2 = web3.utils.toWei("0.32","wei");
+// wei 转 Eth
+const num3 = Web3.utils.fromWei("2100000000","ether");
+const num4 = web3.utils.fromWei("2200000000","ether");
 ```
 
