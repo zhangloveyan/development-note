@@ -87,13 +87,23 @@ vue+web3+solidity
 
 3.获取以太坊网络的节点地址
 
-infura 提供公开的猪王和测试网节点，infura.io 注册即可获取地址
-
-如：`wss://goerli.infura.io/ws/v3/cb7e63cf28244e4499b4b6fb6162e746`
+infura 提供公开的主网和测试网节点，infura.io 注册即可获取地址
 
 
 
+### infura地址：
 
+https：
+
+- https://mainnet.infura.io/v3/eb5886c723264071aa5eb6ca988c10df
+- https://goerli.infura.io/v3/eb5886c723264071aa5eb6ca988c10df
+- https://sepolia.infura.io/v3/eb5886c723264071aa5eb6ca988c10df
+
+websocket：
+
+- wss://mainnet.infura.io/ws/v3/eb5886c723264071aa5eb6ca988c10df
+- wss://goerli.infura.io/ws/v3/eb5886c723264071aa5eb6ca988c10df
+- wss://sepolia.infura.io/ws/v3/eb5886c723264071aa5eb6ca988c10df
 
 ### 其他
 
@@ -160,7 +170,7 @@ github地址：https://github.com/web3/web3.js
 var web3 = new Web3(Web3.givenProvider || "wss://goerli.infura.io/ws/v3/cb7e63cf28244e4499b4b6fb6162e746");
 ```
 
-1.创建账户
+**1.创建账户**
 
 script 中写逻辑
 
@@ -180,7 +190,7 @@ console.log(account.privateKey);
 </script>
 ```
 
-2.余额获取
+**2.余额获取**
 
 script 中写逻辑
 
@@ -216,7 +226,7 @@ template 中可直接使用显示
 </template>
 ```
 
-3.单位转换
+**3.单位转换**
 
 单位：wei 是最小的单位
 
@@ -237,5 +247,30 @@ const num2 = web3.utils.toWei("0.32","wei");
 // wei 转 Eth
 const num3 = Web3.utils.fromWei("2100000000","ether");
 const num4 = web3.utils.fromWei("2200000000","ether");
+```
+
+**4.转账**
+
+1.加密用到的包
+
+```vue
+npm install ethereumjs-tx@1.3.7
+```
+
+加密包版本问题，需要导入一个插件
+
+```vue
+// 安装
+npm i node-polyfill-webpack-plugin
+// vue.config 引入
+const NodePolyfillWebpackPlugin = require("node-polyfill-webpack-plugin");
+module.exports = defineConfig({
+  transpileDependencies: true,
+  configureWebpack: {
+    plugins: [
+      new NodePolyfillWebpackPlugin(),
+      CompentsPlugin({ resolvers: [VantResolver()] })]
+  }
+})
 ```
 
