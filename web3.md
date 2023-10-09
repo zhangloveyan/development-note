@@ -191,25 +191,28 @@ module.exports = defineConfig({
 4.2 转账的参数准备
 
 ```vue
+// 获取交易次数 nonce
+const nonce = await web3.eth.getTransactionCount(address.value);
+// 获取预计转账 也可以直接给出固定值 gas 单位 单位：wei
+const gasPrice = await web3.eth.getGasPrice();
+
+// 参数
 var txObject = {
 	// 交易的次数 每次加一
-	nonce: web3.utils.toHex(txcount),
+	nonce: web3.utils.toHex(nonce),
 	gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei')),
-	gasLimit: web3.utils.toHex(22000),
+	gasLimit: web3.utils.toHex(21000),
 	to: '0x428E78b1642fa63e160a8af5DF3934001BA14a18',
 	// 转账金额
 	value: web3.utils.toHex(web3.utils.toWei('0.012', 'ether')),
 }
-// 次数获取
-const nonce = await web3.eth.getTransactionCount(address.value);
-// 获取预计转账 也可以直接给出固定值 gas 单位 单位：wei
-const gasPrice = await web3.eth.getGasPrice();
 ```
 
 4.3 私钥
 
 ```vue
 // 私钥处理 注意 去掉 0x 开头 否则报错
+const pKey = Buffer(primaryKey.value.slice(2), "hex");
 const privateKey = Buffer.from('56484b333f965e581cf7576a32a73f1cf8483def6ed8f555ab060a3148902cad', 'hex');
 ```
 
@@ -254,7 +257,11 @@ trans.on("confirmation", (res) => {
 
 #### 助记词创建账户
 
-bip39 协议将助记词转换成种子，通过 ethereumjs-wallet 生成 hd 钱包，根据路径的不同从 hd 钱包获取不同的 keypair，keypair 就有公钥、私钥，通过 ethereumjs-util 将公钥生成地址，从而根据助记词获取所有关联的账号，获取到公钥、私钥、地址等数据信息。
+bip39 协议将助记词转换成 seed 种子，通过 ethereumjs-wallet 生成 hd 钱包，根据路径的不同从 hd 钱包获取不同的 keypair（扩展公钥、私钥），keypair 生成 wallet 管理账户，wallet 有地址、私钥等全部信息。
+
+助记词可以获取所有关联的账号，获取到公钥、私钥、地址等数据信息。
+
+![image-20231009202453765](pic/image-20231009202453765.png)
 
 1.依赖库：
 
@@ -274,24 +281,44 @@ import ethwallet, { hdkey } from 'ethereumjs-wallet';
 3.开始
 
 ```vue
-// 创建助记词
+// bip 39 生成助记词
 const mnemonic = bip39.generateMnemonic();
 console.log(mnemonic);
 // const mnemonic = ref("good castle artefact joy dinosaur ginger fog exist save mention include fish");
 
 // 根据助记词生成 seed 种子
 const seed = await bip39.mnemonicToSeed(mnemonic.value);
+
 // 根据种子生成 hdWallet
 const hdWallet = hdkey.fromMasterSeed(seed);
+
 // hdWallet 生成秘钥对 keypair
-const keypair = hdWallet.derivePath("m/44'/0'/0/1");
+const keypair = hdWallet.derivePath("m/44'/60'/0'/0/1");
 // console.log(keypair);
 
-// keypair 获取钱包
+// keypair 获取钱包账户 从而获取所有的信息
 const wallet = keypair.getWallet();
 ```
 
-4.钱包获取私钥、json
+**derivePath**
+
+> BIP44 则是为这个路径约定了一个规范的含义(也扩展了对多币种的支持)，BIP0044 指定了包含 5 个预定义树状层级的结构：
+> **m / purpose' / coin' / account' / change / address_index**
+> m 是固定的, Purpose 也是固定的，值为 44（或者 0x8000002C）
+> **Coin type**
+> 这个代表的是币种，0 代表比特币，1 代表比特币测试链，60 代表以太坊
+> 完整的币种列表地址：https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+> **Account**
+> 代表这个币的账户索引，从 0 开始
+> **Change**
+> 常量 0 用于外部(收款地址)，常量 1 用于内部（也称为找零地址）。外部用于在钱包外可见的地址（例如，用于接收付款）。内部链用于在钱包外部不可见的地址，用于返回交易变更。 (所以一般使用 0 )
+> **address_index**
+> 这就是地址索引，从 0 开始，代表生成第几个地址，官方建议，每个 account 下的 address_index 不要超过 20
+>
+> 根据  EIP85 提议的讨论以太坊钱包也遵循 BIP44 标准，确定路径是 **m/44'/60'/a'/0/n**
+> a 表示帐号，n 是第 n 生成的地址，60 是在 SLIP44 提案中确定的以太坊的编码。所以我们要开发以太坊钱包同样需要对比特币的钱包提案 BIP32、BIP39 有所了解。
+
+4.钱包账户获取私钥 privateKey、秘钥仓库 keystore（json 格式）
 
 ```vue
 // 地址 校验地址 私钥
@@ -302,28 +329,31 @@ const checkAddress = wallet.getChecksumAddressString();
 console.log('校验地址' + checkAddress);
 
 const priKey = wallet.getPrivateKey().toString('hex');
-console.log('私钥' + priKey);
+console.log('私钥---' + priKey);
 
-// 导出 json 需要设置密码
+// 导出 keystore 需要设置密码
 const keystore = await wallet.toV3('111111');
-console.log('keystore--' + JSON.stringify(keystore));
+console.log('keystore---' + JSON.stringify(keystore));
 ```
 
-5.私钥 json 获取地址
+5.秘钥仓库 keystore 获取地址
 
 ```vue
-// 根据 json 导出账号
-const res =await ethwallet.fromV3(keystore, '111111');
-console.log('res---' + res.getPrivateKey().toString('hex'))
-
-// 私钥获取地址
-const priKeyBuffer = Buffer(priKey, 'hex');
-const walletPriKey = ethwallet.fromPrivateKey(priKeyBuffer);
-const lowerCaseAddress2 = walletPriKey.getAddressString();
-console.log(lowerCaseAddress2);
+// keystore 获取地址
+// 其实就是 keystore 转换成 wallet
+const walletFromKeystore =await ethwallet.fromV3(keystore, '111111');
+console.log('地址---' + walletFromKeystore.getAddressString());
 ```
 
-![image-20230928155442557](pic/image-20230928155442557.png)
+6.私钥 privatekey 获取地址
+
+```vue
+// privatekey 获取地址
+// 其实就是 privatekey 转换成 wallet
+const priKeyBuffer = Buffer(priKey, 'hex');
+const walletFromPrikey = ethwallet.fromPrivateKey(priKeyBuffer);
+console.log('地址---' + walletFromPrikey.getAddressString());
+```
 
 ## 实战
 
@@ -441,5 +471,11 @@ module.exports = defineConfig({
       CompentsPlugin({ resolvers: [VantResolver()] })]
   }
 })
+```
+
+#### 存储工具类 store2
+
+```vue
+npm install store2
 ```
 
