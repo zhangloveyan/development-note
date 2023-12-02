@@ -216,13 +216,39 @@ thread.cpp 中 的 Thread::start 方法，最终调用系统开启线程
 
 ![image-20231016115656439](pic/image-20231016115656439.png)
 
-### 2. 常问
+### 2. 线程状态
+
+#### 1. 从操作系统上看，有 5 种状态
+
+![img](pic/webp.webp)
+
+**【初始状态】**：仅是在语言层面创建了线程对象，还未与操作系统线程关联
+
+**【可运行状态（就绪状态）】**：指该线程已经被创建（与操作系统线程关联），可以由CPU调度执行
+
+**【运行状态】**：指获取了CPU时间片运行中的状态
+
+- 当CPU时间片用完，会从**【运行状态】**切换至**【可运行状态】**，会导致线程上下文切换
+
+**【阻塞状态】**
+
+- 如果调用了阻塞API，如BIO读写文件，这时该线程实际不会用到CPU，会导致线程上下文切换，进入**【阻塞状态】**
+- 等BIO操作完毕，会由操作系统唤醒阻塞的线程，转换至**【可运行状态】**
+- 与**【可运行状态】**的区别是，对**【阻塞状态】**的线程来说只要它们一直不唤醒，调度器就一直不会考虑调度它们
+
+**【终止状态】**：表示线程已经执行完毕，生命周期已经结束，不会再切换为其它状态
+
+#### 2. 从 java api 来看 是 6 种状态
+
+![img](pic/webp-17011543050413.webp)
+
+### 3. 常问
 
 1. 核心线程、最大线程、队列
 2. 任务满了的拒绝模式
 3. 创建线程池的方法
 
-## 线程方法
+## 线程
 
 ### 1. Runnable
 
@@ -418,60 +444,7 @@ javap -c *.class
 javap -p *.class
 ```
 
-### 2. 对象头
-
-![object_header.png](pic/5c081fb4576641eaa63e4966703845eftplv-k3u1fbpfcp-zoom-in-crop-mark1512000.awebp)
-
-### 3. monitor 对象
-
-每一个实例都会关联一个 monitor 对象，这个对象可以与对象一起创建销毁，也可以在线程获取锁的时候生成。monitor 对象被持有的时候，便处于锁定状态。
-
-在HotSpot虚拟机中，Monitor是由 [ObjectMonitor](https://link.juejin.cn/?target=https%3A%2F%2Fhg.openjdk.java.net%2Fjdk8u%2Fjdk8u%2Fhotspot%2Ffile%2F782f3b88b5ba%2Fsrc%2Fshare%2Fvm%2Fruntime%2FobjectMonitor.hpp) 实现的,它是一个使用C++实现的类，主要数据结构如下：
-
-```
-ObjectMonitor() {
-    _header       = NULL;
-    _count        = 0; //记录个数
-    _waiters      = 0,
-    _recursions   = 0;  // 线程重入次数
-    _object       = NULL;
-    _owner        = NULL;
-    _WaitSet      = NULL; // 调用wait方法后的线程会被加入到_WaitSet
-    _WaitSetLock  = 0 ;
-    _Responsible  = NULL ;
-    _succ         = NULL ;
-    _cxq          = NULL ; // 阻塞队列，线程被唤醒后根据决策判读是放入cxq还是EntryList
-    FreeNext      = NULL ;
-    _EntryList    = NULL ; // 没有抢到锁的线程会被放到这个队列
-    _SpinFreq     = 0 ;
-    _SpinClock    = 0 ;
-    OwnerIsThread = 0 ;
-  }
-```
-
-ObjectMonitor 中有五个重要部分，分别为 _ower, _WaitSet, _cxq, _EntryList 和 count。
-
-- **_ower** 用来指向持有monitor的线程，它的初始值为NULL,表示当前没有任何线程持有monitor。当一个线程成功持有该锁之后会保存线程的ID标识，等到线程释放锁后_ower又会被重置为NULL;
-- **_WaitSet** 调用了锁对象的wait方法后的线程会被加入到这个队列中；
-- **_cxq**  是一个阻塞队列，线程被唤醒后根据决策判读是放入cxq还是EntryList;
-- **_EntryList** 没有抢到锁的线程会被放到这个队列；
-- **count** 用于记录线程获取锁的次数，成功获取到锁后count会加1，释放锁时count减1。
-
-![image-20231121194958179](pic/image-20231121194958179.png)
-
-> 如果线程获取到对象的monitor后，就会将monitor中的ower设置为该线程的ID，同时monitor中的count进行加1. 如果调用锁对象的wait()方法，线程会释放当前持有的monitor，并将owner变量重置为NULL，且count减1,同时该线程会进入到_WaitSet集合中等待被唤醒。
->
-> 另外_WaitSet，_cxq与_EntryList都是链表结构的队列，存放的是封装了线程的ObjectWaiter对象。如果不深入虚拟机查看相关源码很难理解这几个队列的作用，关于源码会在后边系列文章中分析。这里我简单说下它们之间的关系，如下：
->
-> 在多条线程竞争monitor锁的时候，所有没有竞争到锁的线程会被封装成ObjectWaiter并加入_EntryList队列。 当一个已经获取到锁的线程，调用锁对象的wait方法后，线程也会被封装成一个ObjectWaiter并加入到_WaitSet队列中。 当调用锁对象的notify方法后，会根据不同的情况来决定是将_WaitSet集合中的元素转移到_cxq队列还是_EntryList队列。 等到获得锁的线程释放锁后，又会根据条件来执行_EntryList中的线程或者将_cxq转移到_EntryList中再执行_EntryList中的线程。
->
-> 所以，可以看得出来，_WaitSet存放的是处于WAITING状态等待被唤醒的线程。而_EntryList队列中存放的是等待锁的BLOCKED状态。_cxq队列仅仅是临时存放，最终还是会被转移到_EntryList中等待获取锁。
->
-> 链接：https://juejin.cn/post/6973571891915128846
-
-#### 底层原理
-
-**同步代码块**
+#### 同步代码块
 
 ```
 public void add() {
@@ -525,7 +498,7 @@ monitorenter 和 moniterexit 两条指令
 
 倘若其他线程已经拥有monitor 的所有权，那么当前线程获取锁失败将被阻塞并进入到_EntryList中，直到等待的锁被释放为止。也就是说，当所有相应的monitorexit指令都被执行，计数器的值减为0，执行线程将释放 monitor(锁)，其他线程才有机会持有 monitor 。
 
-**同步方法**
+#### 同步方法
 
 ```
 public synchronized void add(){
@@ -555,35 +528,64 @@ public synchronized void add();
 
 方法的 flag 上加入了 ACC_SYNCHRONIZED 的标记位。如果有的话则会尝试获取 monitor 对象锁。
 
-### 4. ReentrantLock 非公平锁
+### 2. 底层原理
+
+#### 2.1 monitor 对象
+
+![object_header.png](pic/5c081fb4576641eaa63e4966703845eftplv-k3u1fbpfcp-zoom-in-crop-mark1512000.awebp)
+
+#### 2.2 ObjectMonitor 实现类
+
+每一个实例都会关联一个 monitor 对象，这个对象可以与对象一起创建销毁，也可以在线程获取锁的时候生成。monitor 对象被持有的时候，便处于锁定状态。
+
+在HotSpot虚拟机中，Monitor是由 [ObjectMonitor](https://link.juejin.cn/?target=https%3A%2F%2Fhg.openjdk.java.net%2Fjdk8u%2Fjdk8u%2Fhotspot%2Ffile%2F782f3b88b5ba%2Fsrc%2Fshare%2Fvm%2Fruntime%2FobjectMonitor.hpp) 实现的,它是一个使用C++实现的类，主要数据结构如下：
 
 ```
-// 默认非公平锁 true 公平
-ReentrantLock lock = new ReentrantLock(true);
+ObjectMonitor() {
+    _header       = NULL;
+    _count        = 0; //记录个数
+    _waiters      = 0,
+    _recursions   = 0;  // 线程重入次数
+    _object       = NULL;
+    _owner        = NULL;
+    _WaitSet      = NULL; // 调用wait方法后的线程会被加入到_WaitSet
+    _WaitSetLock  = 0 ;
+    _Responsible  = NULL ;
+    _succ         = NULL ;
+    _cxq          = NULL ; // 阻塞队列，线程被唤醒后根据决策判读是放入cxq还是EntryList
+    FreeNext      = NULL ;
+    _EntryList    = NULL ; // 没有抢到锁的线程会被放到这个队列
+    _SpinFreq     = 0 ;
+    _SpinClock    = 0 ;
+    OwnerIsThread = 0 ;
+  }
 ```
 
-为什么默认非公平锁？（核心 减少切换，省cpu时间，减少其他开销）
+ObjectMonitor 中有五个重要部分，分别为 _ower, _WaitSet, _cxq, _EntryList 和 count。
 
-1. 线程恢复挂起有时间差，不公平减少恢复挂起，可以较少 cpu 空闲
-2. 线程切换也需要开销，不公平不需要来回切换，减少开销
+- **_ower** 用来指向持有monitor的线程，它的初始值为NULL,表示当前没有任何线程持有monitor。当一个线程成功持有该锁之后会保存线程的ID标识，等到线程释放锁后_ower又会被重置为NULL;
+- **_WaitSet** 调用了锁对象的wait方法后的线程会被加入到这个队列中；
+- **_cxq**  是一个阻塞队列，线程被唤醒后根据决策判读是放入cxq还是EntryList;
+- **_EntryList** 没有抢到锁的线程会被放到这个队列；
+- **count** 用于记录线程获取锁的次数，成功获取到锁后count会加1，释放锁时count减1。
 
-**可重入锁**
+#### 2.3 具体过程
 
-synchronized 隐式重入，又计数器计数
+![image-20231121194958179](pic/image-20231121194958179.png)
 
-reentrantLock 显示重入，需要自己加解锁
+> 如果线程获取到对象的monitor后，就会将monitor中的ower设置为该线程的ID，同时monitor中的count进行加1. 如果调用锁对象的wait()方法，线程会释放当前持有的monitor，并将owner变量重置为NULL，且count减1,同时该线程会进入到_WaitSet集合中等待被唤醒。
+>
+> 另外_WaitSet，_cxq与_EntryList都是链表结构的队列，存放的是封装了线程的ObjectWaiter对象。如果不深入虚拟机查看相关源码很难理解这几个队列的作用，关于源码会在后边系列文章中分析。这里我简单说下它们之间的关系，如下：
+>
+> 在多条线程竞争monitor锁的时候，所有没有竞争到锁的线程会被封装成ObjectWaiter并加入_EntryList队列。 当一个已经获取到锁的线程，调用锁对象的wait方法后，线程也会被封装成一个ObjectWaiter并加入到_WaitSet队列中。 当调用锁对象的notify方法后，会根据不同的情况来决定是将_WaitSet集合中的元素转移到_cxq队列还是_EntryList队列。 等到获得锁的线程释放锁后，又会根据条件来执行_EntryList中的线程或者将_cxq转移到_EntryList中再执行_EntryList中的线程。
+>
+> 所以，可以看得出来，_WaitSet存放的是处于WAITING状态等待被唤醒的线程。而_EntryList队列中存放的是等待锁的BLOCKED状态。_cxq队列仅仅是临时存放，最终还是会被转移到_EntryList中等待获取锁。
+>
+> 链接：https://juejin.cn/post/6973571891915128846
 
-### 5. synchronized 和 Lock的区别？
+![synchronized](pic/synchronized.png)
 
-- Lock是显示锁，需要手动开启和关闭。synchronized是隐士锁，可以自动释放锁。
-- Lock是一个接口，是JDK实现的。synchronized是一个关键字，是依赖JVM实现的。
-- Lock是可中断锁，synchronized是不可中断锁，需要线程执行完才能释放锁。
-- 发生异常时，Lock不会主动释放占有的锁，必须通过unlock进行手动释放，因此可能引发死锁。synchronized在发生异常时会自动释放占有的锁，不会出现死锁的情况。
-- Lock可以判断锁的状态，synchronized不可以判断锁的状态。
-- Lock实现锁的类型是可重入锁、公平锁。synchronized 实现锁的类型是可重入锁，非公平锁。
-- Lock适用于大量同步代码块的场景，synchronized适用于少量同步代码块的场景。
-
-### 6. 死锁
+### 3. 死锁
 
 本质上是两个线程持有各自的锁，在没有释放的时候都想要获取对方的锁，进入等待状态。
 
@@ -640,8 +642,328 @@ jstack 15180
 
 ![image-20231122094724132](pic/image-20231122094724132.png)
 
+### 4. 线程中断机制
 
+线程应该由自己进行停止或者中断，在 java 没有立即停止，java 提供了一种用于停止的协商机制——**中断**，中断标识协商机制。
+
+#### 4.1 相关 API 
+
+- **void interrupt()**：仅仅设置正常活动的线程中断状态为 true，发起协商不会立刻停止
+- **static boolean interrupted()**：Thread.interrupted()。
+  - 返回当前线程的中断状态
+  - 清除线程的中断状态，重新设置为 false( 清除 通过 native 方法 private static native void clearInterruptEvent();)
+- **boolean isInterrupted()**：返回当前线程的中断状态
+
+底层都是通过 native interrupt0() 方法进行中断操作。
+
+```java
+public void interrupt() {
+    if (this != Thread.currentThread()) {
+        checkAccess();
+
+        // thread may be blocked in an I/O operation
+        synchronized (blockerLock) {
+            Interruptible b = blocker;
+            if (b != null) {
+                interrupted = true;
+                interrupt0();  // inform VM of interrupt
+                b.interrupt(this);
+                return;
+            }
+        }
+    }
+    interrupted = true;
+    // inform VM of interrupt
+    interrupt0();
+}
+private native void interrupt0();
+```
+
+#### 4.2 注意
+
+**1.如果线程不活动了，不会产生任何影响。**
+
+**2.异常情况：**
+
+中断标志位 true，但线程调用 sleep、wait、join 等方法，会抛出异常（InterruptedException）
+
+当抛出异常时，会清除中断标志位 false，造成无限循环
+
+需要在 catch 中，再次调用中断方法，设置为 true，才可以停止程序
+
+**sleep 异常例子：**
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+
+public class InterruptDemo {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(() -> {
+            int i = 0;
+            while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    // 发现中止标记后 自己要定义处理逻辑
+                    System.out.println(Thread.currentThread().getName() + " 标志位停止");
+                    break;
+                }
+                try {
+                    // 中断 sleep 状态  会把中断状态清除，同时抛出异常
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    // 需要在重新进行中断
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
+                i++;
+                System.out.println("---> hello" + i);
+            }
+        }, "t1");
+        t1.start();
+
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(2);
+                t1.interrupt();
+                System.out.println(Thread.currentThread().getName() + " 设置 t1 中止");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, "t2").start();
+    }
+}
+```
+
+**wait 异常例子：**
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+
+public class InterruptDemo {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(() -> {
+            while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    // 发现中止标记后 自己要定义处理逻辑
+                    System.out.println(Thread.currentThread().getName() + " 标志位停止");
+                    break;
+                }
+                System.out.println("启动");
+                synchronized (Thread.currentThread()) {
+                    try {
+                        System.out.println("等待");
+                        Thread.currentThread().wait();
+                    } catch (InterruptedException e) {
+                        // 异常后需要再次中止
+                        Thread.currentThread().interrupt();
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        t1.start();
+        
+        try {
+            TimeUnit.SECONDS.sleep(2);
+            System.out.println("中断");
+            synchronized (t1) {
+                // wait 会抛出异常
+                t1.interrupt();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+**使用例子：**
+
+```
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+
+public class InterruptDemo {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(() -> {
+            while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    // 发现中止标记后 自己要定义处理逻辑
+                    System.out.println(Thread.currentThread().getName() + " 标志位停止");
+                    break;
+                }
+                System.out.println("---> hello");
+            }
+        }, "t1");
+        t1.start();
+
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(2);
+                t1.interrupt();
+                System.out.println(Thread.currentThread().getName() + " 设置 t1 中止");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, "t2").start();
+    }
+}
+```
+
+#### 4.3 LockSupport 
+
+**阻塞、唤醒实现：**
+
+1.object：wait、notify
+
+2.Lock 的 Condition：await、signal
+
+```java
+Lock lock = new ReentrantLock();
+Condition condition = new ReentrantLock().newCondition();
+condition.await();
+condition.signal();
+```
+
+3.LockSupport：park、unpark
+
+一个线程阻塞工具类，所有方法都是静态方法，任意位置阻塞、唤醒。
+
+使用 permit（许可）的概念，每个线程都有一个许可（最多一个，不能累加）。
+
+**使用**
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+
+public class LockSupportDemo {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(() -> {
+            System.out.println(Thread.currentThread().getName() + " come in");
+            LockSupport.park();
+            System.out.println(Thread.currentThread().getName() + " 被唤醒");
+        }, "t1");
+        t1.start();
+
+        try {
+            TimeUnit.SECONDS.sleep(2);
+            System.out.println("发放通行证给 t1");
+            LockSupport.unpark(t1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+```
+
+**原理解析**
+
+调用 unsafe 的 native 代码
+
+![image-20231128192035921](pic/image-20231128192035921.png)
+
+LockSupport 和每个使用它的线程都有一个许可（permit）关联
+
+park：如果有凭证，消耗凭证，正常退出（不阻塞）
+
+如果没有凭证，就必须阻塞等待凭证可用
+
+unpark：增加一个凭证，但凭证最多只有一个，累加无效。
+
+### 其他
+
+#### 1. ReentrantLock 非公平锁
+
+```
+// 默认非公平锁 true 公平
+ReentrantLock lock = new ReentrantLock(true);
+```
+
+为什么默认非公平锁？（核心 减少切换，省cpu时间，减少其他开销）
+
+1. 线程恢复挂起有时间差，不公平减少恢复挂起，可以较少 cpu 空闲
+2. 线程切换也需要开销，不公平不需要来回切换，减少开销
+
+**可重入锁**
+
+synchronized 隐式重入，又计数器计数
+
+reentrantLock 显示重入，需要自己加解锁
+
+#### 2. synchronized 和 Lock 的区别？
+
+- Lock是显示锁，需要手动开启和关闭。synchronized是隐士锁，可以自动释放锁。
+- Lock是一个接口，是JDK实现的。synchronized是一个关键字，是依赖JVM实现的。
+- Lock是可中断锁，synchronized是不可中断锁，需要线程执行完才能释放锁。
+- 发生异常时，Lock不会主动释放占有的锁，必须通过unlock进行手动释放，因此可能引发死锁。synchronized在发生异常时会自动释放占有的锁，不会出现死锁的情况。
+- Lock可以判断锁的状态，synchronized不可以判断锁的状态。
+- Lock实现锁的类型是可重入锁、公平锁。synchronized 实现锁的类型是可重入锁，非公平锁。
+- Lock适用于大量同步代码块的场景，synchronized适用于少量同步代码块的场景。
 
 ### 5. 锁优化
 
 因为Java虚拟机是通过进入和退出Monitor对象来实现代码块同步和方法同步的，而Monitor是依靠底层操作系统的`Mutex Lock`来实现的，操作系统实现线程之间的切换需要从用户态转换到内核态，这个切换成本比较高，对性能影响较大
+
+## 关键字
+
+### 0. 内存模型 JMM
+
+定义了一种 java 内存模型，屏蔽各种硬件和操作系统的内存访问差异，到达一致的内存访问效果。
+
+![image-20231129135056437](pic/image-20231129135056437.png)
+
+规范：原子性、可见性、有序性
+
+#### 可见性 
+
+当一个线程修改了某一个共享变量的值，其他线程是否能够立即知道该变更，JMM 规定所有变量都存储在**主内存**中。
+
+修改时，不直接修改主内存数据，需要拷贝一份到线程的本地内存，修改完成刷新回主内存。
+
+![image-20231129142909962](pic/image-20231129142909962.png)
+
+#### 原子性
+
+一个操作过程不可打断的，最小操作单元。即多线程下，操作也不能被其他线程干扰。
+
+#### 有序性
+
+代码不一定会从上到下，有序执行。编译器和处理器会对指令序列进行重新排序，只要最终结果相等，那么执行的执行顺序和代码顺序可以不一致。
+
+![image-20231129151309865](pic/image-20231129151309865.png)
+
+![image-20231129152423915](pic/image-20231129152423915.png)
+
+#### 多线程先行先发原则 happens-before
+
+1.第一个操作的如果发生在第二个操作之前，那么第一个操作的结果对第二个可见，第一个操作执行顺序排在第二个之前
+
+2.如果重新排序后执行结果和 happens-before 一致，这种排序不非法
+
+### 0.缓存一致性协议
+
+
+
+### 1. volatile
+
+#### 修饰变量特点
+
+当写 volatile 变量时，JMM 会将本地内存中的变量立即刷新到主内存中
+
+当读 volatile 变量时，JMM 将本地内存中的变量设置无效，重新回主内存中读取最新共享变量
+
+相当于都从主内存读写变量。
+
+#### 2.如何保证可见性和有序性
+
+内存屏障 Memory Barrier
