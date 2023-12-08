@@ -916,7 +916,7 @@ reentrantLock 显示重入，需要自己加解锁
 
 ## 关键字
 
-### 0. 内存模型 JMM
+### 0.1 内存模型 JMM
 
 定义了一种 java 内存模型，屏蔽各种硬件和操作系统的内存访问差异，到达一致的内存访问效果。
 
@@ -950,20 +950,213 @@ reentrantLock 显示重入，需要自己加解锁
 
 2.如果重新排序后执行结果和 happens-before 一致，这种排序不非法
 
-### 0.缓存一致性协议
+### 0.2 缓存一致性协议
+
+本质上来说就是数据读取时间大于计算时间，为了让 cpu 充分使用，设计 cpu 缓存，但多核 cpu 会有读取数据不一致问题，所以通过一致性协议来规避问题。
+
+缓存一致性协议就是管理多个 CPU cache 之间数据的一致性。
+
+#### 0.2.1 四种状态 MESI
+
+协议在每一个 cache line 中维护一个两位的状态 “tag” ，这个 “tag” 在 cache line 的物理地址或者数据后。
+
+四种状态
+
+- M : modified（独占已修改数据）
+- E : exclusive（独占未修改数据）
+- S : shared（存在一个或多个 cpu cache 中）
+- I : invalid（无数据）
+
+![图片](pic/640.jpeg)
+
+|           | CPU是否独占数据 | cacheline数据 | memory数据 | 直接写数据 |
+| --------- | --------------- | ------------- | ---------- | ---------- |
+| modified  | 是              | 最新          | 最新       | 可以       |
+| exclusive | 是              | 最新          | 最新       | 可以       |
+| shared    | 否              | 最新          | 最新       | 不可以     |
+| invalid   | 否（无数据）    | 无数据        | 最新       | 无数据     |
+
+#### 0.2.2 六种操作
+
+1. Read。"read" 消息用来获取指定物理地址上的 cache line 数据。
+2. Read Response。该消息携带了 “read” 消息所请求的数据。read response 可能来自于 memory 或者是其他 CPU cache。
+3. Invalidate。该消息将其他 CPU cache 中指定的数据设置为失效。该消息携带物理地址，其他 CPU cache 在收到该消息后，必须进行匹配，发现在自己的 cache line 中有该地址的数据，那么就将其从 cahe line 中移除，并响应 Invalidate Acknowledge 回应。
+4. Invalidate Acknowledge。该消息用做回应 Invalidate 消息。
+5. Read Invalidate。该消息中带有物理地址，用来说明想要读取哪一个 cache line 中的数据。这个消息还有 Invalidate 消息的效果。其实该消息是 read + Invalidate 消息的组合，发送该消息后 cache 期望收到一个 read response 消息。
+6. Writeback。 该消息带有地址和数据，该消息用在 modified 状态的 cache line 被置换时发出，用来将最新的数据写回 memory 或其他下一级 cache 中。
+
+#### 0.2.3 状态、操作转换图
+
+![图片](pic/640-17018620334582.jpeg)
+
+根据 MESI 协议消息的发送和接收或者是对数据的读写，cache line 的状态会在 modified ， exclusive , shared , invalid 之间进行转换。
+
+
+
+> a. cache 通过 writeback 将数据回写到 memory 或者下一级 cache 中。这时候状态由 modified 变成了 exclusive 。
+>
+> b. cpu 直接将数据写入 cache line ，导致状态变为了 modified 。
+>
+> c. CPU 收到一个 read invalidate 消息，此时 CPU 必须将对应 cache line 设置成 invalid 状态 , 并且响应一个 read response 消息和 invalidate acknowledge 消息。
+>
+> d. CPU 需要执行一个原子的 readmodify-write 操作，并且其 cache 中没有缓存数据。这时候 CPU 就会在总线上发送一个 read invalidate 消息来请求数据，并试图独占该数据。CPU 可以通过收到的 read response 消息获取到数据，并等待所有的 invalidate acknowledge 消息，然后将状态设置为 modifie 。
+>
+> e. CPU需要执行一个原子的readmodify-write操作，并且其local cache中有read only的缓存数据（cacheline处于shared状态），这时候，CPU就会在总线上发送一个invalidate请求其他cpu清空自己的local copy，以便完成其独自霸占对该数据的所有权的梦想。同样的，该cpu必须收集所有其他cpu发来的invalidate acknowledge之后才能更改状态为 modified。
+>
+> f. 在本cpu独自享受独占数据的时候，其他的cpu发起read请求，希望获取数据，这时候，本cpu必须以其local cacheline的数据回应，并以read response回应之前总线上的read请求。这时候，本cpu失去了独占权，该cacheline状态从Modified状态变成shared状态（有可能也会进行写回的动作）。
+>
+> g. 这个迁移和f类似，只不过开始cacheline的状态是exclusive，cacheline和memory的数据都是最新的，不存在写回的问题。总线上的操作也是在收到read请求之后，以read response回应。
+>
+> h. 如果cpu认为自己很快就会启动对处于shared状态的cacheline进行write操作，因此想提前先霸占上该数据。因此，该cpu会发送invalidate敦促其他cpu清空自己的local copy，当收到全部其他cpu的invalidate acknowledge之后，transaction完成，本cpu上对应的cacheline从shared状态切换exclusive状态。还有另外一种方法也可以完成这个状态切换：当所有其他的cpu对其local copy的cacheline进行写回操作，同时将cacheline中的数据设为无效（主要是为了为新的数据腾些地方），这时候，本cpu坐享其成，直接获得了对该数据的独占权。
+>
+> i. 其他的CPU进行一个原子的read-modify-write操作，但是，数据在本cpu的cacheline中，因此，其他的那个CPU会发送read invalidate，请求对该数据以及独占权。本cpu回送read response”和“invalidate acknowledge”，一方面把数据转移到其他cpu的cache中，另外一方面，清空自己的cacheline。
+>
+> j. cpu想要进行write的操作但是数据不在local cache中，因此，该cpu首先发送了read invalidate启动了一次总线transaction。在收到read response回应拿到数据，并且收集所有其他cpu发来的invalidate acknowledge之后（确保其他cpu没有local copy），完成整个bus transaction。当write操作完成之后，该cacheline的状态会从Exclusive状态迁移到Modified状态。
+>
+> k. 本CPU执行读操作，发现local cache没有数据，因此通过read发起一次bus transaction，来自其他的cpu local cache或者memory会通过read response回应，从而将该 cache line 从Invalid状态迁移到shared状态。
+>
+> l. 当cache line处于shared状态的时候，说明在多个cpu的local cache中存在副本，因此，这些cacheline中的数据都是read only的，一旦其中一个cpu想要执行数据写入的动作，必须先通过invalidate获取该数据的独占权，而其他的CPU会以invalidate acknowledge回应，清空数据并将其cacheline从shared状态修改成invalid状态。
 
 
 
 ### 1. volatile
 
-#### 修饰变量特点
+#### 1.1 修饰变量特点
 
 当写 volatile 变量时，JMM 会将本地内存中的变量立即刷新到主内存中
 
 当读 volatile 变量时，JMM 将本地内存中的变量设置无效，重新回主内存中读取最新共享变量
 
-相当于都从主内存读写变量。
+相当于都从主内存读写变量。（严格来说都是从 store-buffer 刷到 cacheline）
 
-#### 2.如何保证可见性和有序性
+#### 1.2 内存屏障
 
 内存屏障 Memory Barrier
+
+参考：https://zhuanlan.zhihu.com/p/125737864
+
+**背景：**
+
+在 缓存一致性协议中，由于需要发消息、等待消息回复、对于 cpu 来说，等待是很长的，所以暂时用一个 store-buffer 来存储等待消息的这个值，cpu 可以先做其他的事情，等收到其他 cpu 的消息后在进行处理。
+
+这样做可以提高 cpu 效率，但是引入了新问题，就是 store-buffer 中如果存储了下一个计算需要使用的值，那么这个值就不是最新的值。
+
+所以引入内存屏障（读、写屏障）来处理这个问题。强制让操作按照顺序执行，不可以跨越。
+
+**含义：**
+
+cpu 或编译器在对内存随机访问的操作中的一个同步点，使得此点之前的所有读写操作都执行之后才可开始执行此点之后的操作，避免代码重新排序。
+
+**硬件层面：**
+
+- **sfence**：即写屏障(Store Barrier)，在写指令之后插入写屏障，能让写入缓存的最新数据写回到主内存，以保证写入的数据立刻对其他线程可见
+- **lfence**：即读屏障(Load Barrier)，在读指令前插入读屏障，可以让高速缓存中的数据失效，重新从主内存加载数据，以保证读取的是最新的数据。
+- **mfence**：即全能屏障(modify/mix Barrier )，兼具sfence和lfence的功能
+
+**硬件结构**
+
+![img](pic/v2-aad03e8cfcfe520fcc4a8a2c9d0597fb_720w.webp)
+
+**JMM 四种策略**
+
+![image-20231208180720177](pic/image-20231208180720177.png)
+
+**JMM 四种策略代码：**
+
+![img](pic/v2-a70c09d543f49a8784af527346f5adf4_r.jpg)
+
+#### 1.3 最终规则
+
+总结：读之后，写之前 的顺序不能乱
+
+![image-20231208181212013](pic/image-20231208181212013.png)
+
+**volatile 读释义：**
+
+![image-20231208190108406](pic/image-20231208190108406.png)
+
+**volatile写释义：**
+
+![image-20231208190150514](pic/image-20231208190150514.png)
+
+案例：
+
+![image-20231208190736434](pic/image-20231208190736434.png)
+
+
+
+#### 1.4 保证可见性
+
+**volatile 读取过程**
+
+![image-20231208192420391](pic/image-20231208192420391.png)
+
+- lock(锁定)：作用于主内存的变量，它把一个变量标识为一条线程独占的状态。
+- unlock(解锁)：作用于主内存的变量，它把一个处于锁定状态的变量释放出来，释放后的变量才可以被其他线程锁定。
+- read(读取)：作用于主内存的变量，它把一个变量的值从主内存传输到线程的工作内存中，以便随后的load动作使用。
+- load(载入)：作用于工作内存的变量，它把read操作从主内存中得到的变量值放入工作内存的变量副本中。
+- use(使用)：作用于工作内存的变量，它把工作内存中一个变量的值传递给执行引擎，每当虚拟机遇到一个需要使用到变量的值的字节码指令时将会执行这个操作。
+- assign(赋值)：作用于工作内存的变量，它把一个从执行引擎接收到的值赋给工作内存的变量，每当虚拟机遇到一个给变量赋值的字节码指令时执行这个操作。
+- store(存储)：作用于工作内存的变量，它把工作内存中一个变量的值传送到主内存中，以便随后的write操作使用。
+- write(写入)：作用于主内存的变量，它把store操作从工作内存中得到的变量的值放入主内存的变量中。
+
+**案例：**
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+
+public class VolatileDemo {
+    private static boolean flag1 = true;
+    private static volatile boolean flag2 = true;
+
+    public static void main(String[] args) throws InterruptedException {
+        new Thread(() -> {
+            while (flag2) {
+            }
+            System.out.println("感知 flag1 变化 停止循环 - " + System.currentTimeMillis());
+        }, "t1").start();
+
+        TimeUnit.SECONDS.sleep(2);
+        flag2 = false;
+        System.out.println("flag2 设置 false - " + System.currentTimeMillis());
+    }
+}
+// 不添加 volatile 时，一直死循环
+```
+
+volatile 读原理：
+
+
+
+总结来说，`volatile` 可见性包括两个方面：
+
+1. 写入的 `volatile` 变量在写完之后能被别的 CPU 在下一次读取中读取到；
+2. 写入 `volatile` 变量之前的操作在别的 CPU 看到 `volatile` 的最新值后一定也能被看到；
+
+对于第一个方面，主要通过：
+
+1. 读取 `volatile` 变量不能使用寄存器，每次读取都要去内存拿
+2. 禁止读 `volatile` 变量后续操作被重排到读 `volatile` 之前
+
+对于第二个方面，主要是通过写 `volatile` 变量时的 Barrier 保证写 `volatile` 之前的操作先于写 `volatile` 变量之前发生。
+
+最后还一个特殊的，如果能用到 `StoreLoad` Barrier，写 `volatile` 后一般会触发 Store Buffer 的刷写，所以写操作能「立即」被别的 CPU 看到。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
