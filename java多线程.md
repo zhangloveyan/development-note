@@ -916,7 +916,7 @@ reentrantLock 显示重入，需要自己加解锁
 
 ## 关键字
 
-### 0.1 内存模型 JMM
+### 0. 内存模型 JMM
 
 定义了一种 java 内存模型，屏蔽各种硬件和操作系统的内存访问差异，到达一致的内存访问效果。
 
@@ -950,13 +950,13 @@ reentrantLock 显示重入，需要自己加解锁
 
 2.如果重新排序后执行结果和 happens-before 一致，这种排序不非法
 
-### 0.2 缓存一致性协议
+### 0. 缓存一致性协议
 
 本质上来说就是数据读取时间大于计算时间，为了让 cpu 充分使用，设计 cpu 缓存，但多核 cpu 会有读取数据不一致问题，所以通过一致性协议来规避问题。
 
 缓存一致性协议就是管理多个 CPU cache 之间数据的一致性。
 
-#### 0.2.1 四种状态 MESI
+#### 0.1 四种状态 MESI
 
 协议在每一个 cache line 中维护一个两位的状态 “tag” ，这个 “tag” 在 cache line 的物理地址或者数据后。
 
@@ -976,7 +976,7 @@ reentrantLock 显示重入，需要自己加解锁
 | shared    | 否              | 最新          | 最新       | 不可以     |
 | invalid   | 否（无数据）    | 无数据        | 最新       | 无数据     |
 
-#### 0.2.2 六种操作
+#### 0.2 六种操作
 
 1. Read。"read" 消息用来获取指定物理地址上的 cache line 数据。
 2. Read Response。该消息携带了 “read” 消息所请求的数据。read response 可能来自于 memory 或者是其他 CPU cache。
@@ -985,7 +985,7 @@ reentrantLock 显示重入，需要自己加解锁
 5. Read Invalidate。该消息中带有物理地址，用来说明想要读取哪一个 cache line 中的数据。这个消息还有 Invalidate 消息的效果。其实该消息是 read + Invalidate 消息的组合，发送该消息后 cache 期望收到一个 read response 消息。
 6. Writeback。 该消息带有地址和数据，该消息用在 modified 状态的 cache line 被置换时发出，用来将最新的数据写回 memory 或其他下一级 cache 中。
 
-#### 0.2.3 状态、操作转换图
+#### 0.3 状态、操作转换图
 
 ![图片](pic/640-17018620334582.jpeg)
 
@@ -1019,17 +1019,7 @@ reentrantLock 显示重入，需要自己加解锁
 
 
 
-### 1. volatile
-
-#### 1.1 修饰变量特点
-
-当写 volatile 变量时，JMM 会将本地内存中的变量立即刷新到主内存中
-
-当读 volatile 变量时，JMM 将本地内存中的变量设置无效，重新回主内存中读取最新共享变量
-
-相当于都从主内存读写变量。（严格来说都是从 store-buffer 刷到 cacheline）
-
-#### 1.2 内存屏障
+### 0. 内存屏障
 
 内存屏障 Memory Barrier
 
@@ -1065,27 +1055,17 @@ cpu 或编译器在对内存随机访问的操作中的一个同步点，使得�
 
 ![img](pic/v2-a70c09d543f49a8784af527346f5adf4_r.jpg)
 
-#### 1.3 最终规则
+### 1. volatile
 
-总结：读之后，写之前 的顺序不能乱
+#### 1.1 修饰变量特点
 
-![image-20231208181212013](pic/image-20231208181212013.png)
+当写 volatile 变量时，JMM 会将本地内存中的变量立即刷新到主内存中
 
-**volatile 读释义：**
+当读 volatile 变量时，JMM 将本地内存中的变量设置无效，重新回主内存中读取最新共享变量
 
-![image-20231208190108406](pic/image-20231208190108406.png)
+相当于都从主内存读写变量。（严格来说都是从 store-buffer 刷到 cacheline）
 
-**volatile写释义：**
-
-![image-20231208190150514](pic/image-20231208190150514.png)
-
-案例：
-
-![image-20231208190736434](pic/image-20231208190736434.png)
-
-
-
-#### 1.4 保证可见性
+#### 1.2 保证可见性
 
 **volatile 读取过程**
 
@@ -1126,37 +1106,460 @@ public class VolatileDemo {
 // 不添加 volatile 时，一直死循环
 ```
 
-volatile 读原理：
+#### 1.3 不保证原子性
+
+根据读取过程可知，如果是单 cpu，操作是顺序的，则不会发生问题。但实际的服务器都是多核 cpu，那么就会出现多并发问题。如下图：
+
+当线程1对主内存对象发起 read 操作到 write 操作第一套流程的时间里，线程2都可以进行第二套操作
+
+![image-20231213114755955](pic/image-20231213114755955.png)
+
+如：i++ 分为三步（加载、计算、赋值）
+
+![image-20231213115305620](pic/image-20231213115305620.png)
+
+举例子：
+
+A 、B 两个线程，共享变量 volatile 修饰，B 先读取变量（5）、+1操作（6），但是在写回的时候，A 线程也进行读取（5）、+1操作（6），并写回主内存，此时，主存更新，通知 B 失效，但是 B 此时进行完成了 +1 操作（通知的晚了），所以写回的也是 6 。
+
+![image-20231213120106327](pic/image-20231213120106327.png)
+
+#### 1.4 保证顺序性
+
+**总结：读之后，写之前 的顺序不能乱**
+
+![image-20231208181212013](pic/image-20231208181212013.png)
+
+**volatile 读释义：**
+
+![image-20231208190108406](pic/image-20231208190108406.png)
+
+**volatile写释义：**
+
+![image-20231208190150514](pic/image-20231208190150514.png)
+
+案例：
+
+![image-20231208190736434](pic/image-20231208190736434.png)
+
+#### 1.5 使用
+
+1. 单一赋值，含有运算赋值不可以（i++）
+2. 状态标记，boolean 这种
+3. 开销比较低的读，写锁策略
+4. DCL 双端锁（double check lock）
+
+## CAS（compareAndSet）
+
+### 0. Unsafe 类介绍
+
+参考文章：https://zhuanlan.zhihu.com/p/82257645
+
+Unsafe 类可以进行内存指针相关的操作（类似 c 直接控制内存）
+
+#### 1. 相关 API 
+
+开辟内存：allocateMemory 
+
+扩充内存：reallocateMemory 
+
+释放内存：freeMemory
+
+在指定的内存块中设置值：setMemory 
+
+未经安全检查的加载Class：defineClass
+
+原子性的更新实例对象指定偏移内存地址的值：compareAndSwapObject 
+
+获取系统的负载情况：getLoadAverage，等同于 linux 中的 uptime 不调用构造函数来创建一个类的实例：allocateInstance
+
+#### 2. compareAndSwapInt
+
+```java
+/**
+ * Atomically update Java variable to <tt>x</tt> if it is currently
+ * holding <tt>expected</tt>.
+ * 如果对象o指定offset所持有的值是expected，那么将它原子性的改为值x。
+ * @return <tt>true</tt> if successful
+ */
+public final native boolean compareAndSwapInt(Object o, long offset,
+                                              int expected,
+                                              int x);
+```
+
+在OpenJDK中可以看到这个方法的native实现，在unsafe.cpp中。
+
+```c
+UNSAFE_ENTRY(jboolean, Unsafe_CompareAndSwapInt(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jint e, jint x))
+  UnsafeWrapper("Unsafe_CompareAndSwapInt");
+  // #1
+  oop p = JNIHandles::resolve(obj);
+  // #2
+  jint* addr = (jint *) index_oop_from_field_offset_long(p, offset);
+  // #3
+  return (jint)(Atomic::cmpxchg(x, addr, e)) == e;
+UNSAFE_END
+```
+
+代码#1将目标对象转换为oop，oop是本地实现中oopDesc类的实现，其定义在oop.hpp中。oopDesc是所有class的顶层baseClass，它描述了Java object的格式，使Java object中的field可以被C++访问。
+
+代码#2负责获取oop中指定offset的内存地址，指针变量addr记录的就是这个地址中存储的int值。
+
+代码#3调用Atomic::cmpxchg来原子性的完成值得替换。
+
+#### 3. getAndAddInt
+
+```java
+/**
+ * Atomically adds the given value to the current value of a field
+ * or array element within the given object <code>o</code>
+ * at the given <code>offset</code>.
+ *
+ * @param o object/array to update the field/element in
+ * @param offset field/element offset
+ * @param delta the value to add
+ * @return the previous value
+ * @since 1.8
+ */
+public final int getAndAddInt(Object o, long offset, int delta) {
+    int v;
+    do {
+        v = getIntVolatile(o, offset);
+    } while (!compareAndSwapInt(o, offset, v, v + delta));
+    return v;
+}
+```
+
+while 中的 compareAndSwapInt() 方法尝试修改 v 的值,具体地, 该方法也会通过obj和offset获取变量的值 如果这个值和v不一样, 说明其他线程修改了obj+offset地址处的值, 此时compareAndSwapInt()返回false, 继续循环 如果这个值和v一样, 说明没有其他线程修改obj+offset地址处的值, 此时可以将obj+offset地址处的值改为v+delta, compareAndSwapInt()返回true, 退出循环 Unsafe类中的compareAndSwapInt()方法是原子操作, 所以compareAndSwapInt()修改obj+offset地址处的值的时候不会被其他线程中断
+
+### 1. 基础
+
+CAS 是 jdk 提供的 非阻塞的原子性操作，通过硬件保证了比较-更新的原子性。
+
+#### 1.1 原理
+
+CAS 是一条指令（cmpxchg 指令），当执行时（具体由 Unsafe 类执行 native 底层），多核系统会给总线加锁，只有一个线程会对总线加锁成功，成功后执行 cas 操作（其他线程在执行时，不一致就会重新获取值在执行），实际上是 cpu 独占实现的，不需要内核切换，比 synchronized 消耗资源少。
+
+#### 1.2 手写 CAS 锁
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class CASDemo {
+    AtomicReference<Thread> threadAtomicReference = new AtomicReference<>();
+
+    public void lock() throws InterruptedException {
+        Thread thread = Thread.currentThread();
+        System.out.println(thread.getName() + " com in...");
+        while (!threadAtomicReference.compareAndSet(null, thread)) {
+            TimeUnit.MILLISECONDS.sleep(200);
+            System.out.println(thread.getName() + " 自旋等待");
+        }
+    }
+
+    public void unLock() {
+        Thread thread = Thread.currentThread();
+        threadAtomicReference.compareAndSet(thread, null);
+        System.out.println(thread.getName() + " task over, unlock...");
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        CASDemo demo = new CASDemo();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("线程 A 休眠开始");
+                try {
+                    demo.lock();
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("线程 A 休眠结束");
+                demo.unLock();
+            }
+        }, "A").start();
+        TimeUnit.MILLISECONDS.sleep(500);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("线程 B 休眠开始");
+                try {
+                    demo.lock();
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("线程 B 休眠结束");
+                demo.unLock();
+            }
+        }, "B").start();
+    }
+}
+
+```
+
+![image-20231213181119882](pic/image-20231213181119882.png)
+
+#### 1.3 存在问题
+
+1.cpu 空转，浪费性能
+
+2.ABA 问题：添加版本号，类似于
+
+#### 1.4 常用原子引用类
+
+##### 1. 基本类型原子类
+
+```java
+// 可以原子方式更新的值 boolean
+AtomicBoolean
+// 可以原子方式更新的 int值
+AtomicInteger
+// 可以原子方式更新的 long值
+AtomicLong
+```
+
+常用方法
+
+```
+public final int get();
+public final int getAndSet(int new Value);
+public final int getAndIncrement();
+public final int getAndDecrement();
+public final int getAndAdd(int delta);
+public comapreAndSet(int expect,int update);
+```
+
+##### 2. 数组类型原子类
+
+```java
+// 一个 int数组，其中元素可以原子方式更新
+AtomicIntegerArray
+// 一个 long数组，其中元素可以原子方式更新
+AtomicLongArray
+// | 一组对象引用，其中元素可以原子方式更新
+AtomicRreferenceArray
+```
+
+##### 3. 引用类型原子类
+
+```java
+// 可以原子方式更新的对象引用
+AtomicReference
+// AtomicStampedReference维护一个对象引用以及一个整数“标记”，可以原子方式更新
+AtomicStampedReference
+// AtomicMarkableReference维护一个对象引用以及一个标记位，可以原子方式更新
+AtomicMarkableReference
+```
+
+AtomicStampedReference 携带版本号的引用类型原子类，可以解决ABA问题。解决修改过几次的问题
+
+AtomicMarkableReference 解决是否修改过，它的定义就是将`状态戳`**简化**为`true|false`，类似一次性筷子
+
+**AtomicReference 例子**
+
+```java
+package com.juc.zz;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class CASDemo {
+    public static void main(String[] args) {
+        // 常用 AtomicInteger 等
+        AtomicReference<User> atomUser = new AtomicReference<>();
+        
+        User u1 = new User("zhangsan", 10);
+        User u2 = new User("lisi", 15);
+
+        atomUser.set(u1);
+        boolean b = atomUser.compareAndSet(u1, u2);
+        System.out.println("操作---" + b + " 当前值---" + atomUser.get().toString());
+    }
+}
+
+class User {
+    public User(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+
+    private String name;
+    private int age;
+}
+
+```
+
+##### 4. 对象的属性修改原子类
+
+```java
+// 原子更新对象中int类型字段的值
+AtomicIntegerFieldUpdater
+// 原子更新对象中Long类型字段的值
+AtomicLongFieldUpdater
+// 原子更新引用类型字段的值
+AtomicReferenceFieldUpdater
+```
+
+**使用目的**
+
+以一种线程安全带 方式操作非线程安全对象内的某些字段
+
+**使用要求**
+
+1. 更新的对象属性必须使用 public volatile 修饰符
+2. 因为对象的属性修改类型原子类都是抽象类，所以每次使用都必须使用静态方法 newUpdater() 创建一个更新器，并且需要设置想要更新的类和属性
+
+如果使用 synchronized，这种方法虽然安全了，但是锁的粒度太大了我只是修改money却把我真个bankAccount对象都给锁了
+
+```java
+class BankAccount {
+
+    String bankName = "CCB";
+
+    public int money = 0;
+    
+    public synchronized void add() {
+        money ++;
+    }
+}
+
+/**
+ * @author zjh
+ */
+public class AtomicReferenceFieldUpdaterDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+
+        BankAccount bankAccount = new BankAccount();
+        CountDownLatch countDownLatch = new CountDownLatch(10);
+
+        for (int i = 0; i < 10; i++) {
+            new Thread(() -> {
+                try {
+                    for (int j = 0; j < 1000; j++) {
+                        bankAccount.add();
+                    }
+                } finally {
+                    countDownLatch.countDown();
+                }
+            }, String.valueOf(i)).start();
+        }
+
+        countDownLatch.await();
+        System.out.println(Thread.currentThread().getName() + "\t" + "result：" + bankAccount.money);
+    }
+}
+```
+
+**AtomicReferenceFieldUpdater**
+
+这块只针对 money 字段进行了原子操作
+
+```java
+class BankAccount {
+
+    String bankName = "CCB";
+    
+    // 更新的对象属性必须使用public volatile修饰符
+    public volatile int money = 0;
+    
+    // 因为对象的属性修改类型原子类都是抽象类，所以每次使用都必须使用静态方法newUpdater()创建一个更新器，并且需要设置想要更新的类和属性
+    AtomicIntegerFieldUpdater<BankAccount> atomicIntegerFieldUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(BankAccount.class,"money");
+
+    public void add(BankAccount bankAccount) {
+        atomicIntegerFieldUpdater.getAndIncrement(bankAccount);
+    }
+}
+
+/**
+ * @author zjh
+ */
+public class AtomicReferenceFieldUpdaterDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+
+        BankAccount bankAccount = new BankAccount();
+        CountDownLatch countDownLatch = new CountDownLatch(10);
+
+        for (int i = 0; i < 10; i++) {
+            new Thread(() -> {
+                try {
+                    for (int j = 0; j < 1000; j++) {
+                        bankAccount.add(bankAccount);
+                    }
+                } finally {
+                    countDownLatch.countDown();
+                }
+            }, String.valueOf(i)).start();
+        }
+
+        countDownLatch.await();
+        System.out.println(Thread.currentThread().getName() + "\t" + "result：" + bankAccount.money);
+    }
+}
+```
+
+##### java 8 新增
+
+```java
+// 前面所讲的几种类型java5就有了，下面这些是java8才有的
+DoubleAccumulator
+DoubleAdder
+LongAccumulator
+LongAdder
+```
+
+![img](pic/2444149-20230209134637738-2017238323.png)
 
 
 
-总结来说，`volatile` 可见性包括两个方面：
+![img](pic/2444149-20230213104631550-788021543.png)
 
-1. 写入的 `volatile` 变量在写完之后能被别的 CPU 在下一次读取中读取到；
-2. 写入 `volatile` 变量之前的操作在别的 CPU 看到 `volatile` 的最新值后一定也能被看到；
+### 使用总结
 
-对于第一个方面，主要通过：
+#### AtomicLong
 
-1. 读取 `volatile` 变量不能使用寄存器，每次读取都要去内存拿
-2. 禁止读 `volatile` 变量后续操作被重排到读 `volatile` 之前
+1. 线程安全，可允许一些性能损耗，要求高精度时可使用
+2. 保证精度，性能代价
+3. AtomicLong是多个线程针对单个热点值value进行原子操作
 
-对于第二个方面，主要是通过写 `volatile` 变量时的 Barrier 保证写 `volatile` 之前的操作先于写 `volatile` 变量之前发生。
+#### LongAdder
 
-最后还一个特殊的，如果能用到 `StoreLoad` Barrier，写 `volatile` 后一般会触发 Store Buffer 的刷写，所以写操作能「立即」被别的 CPU 看到。
+1. 当需要在高并发下有较好的性能表现，且对值的精确度要求不高时，可以使用
+2. 保证性能，精度代价
+3. LongAdder是每个线程拥有自己的槽，各个线程一般只对自己槽中的那个值进行CAS操作
 
+##### 总结
 
+AtomicLong
 
+1. 原理
+   CAS+自旋
+2. 场景
+   低并发下的全局计算，AtomicLong能保证并发情况下计数的准确性，其内部通过CAS来解决并发安全性的问题
+3. 缺陷
+   高并发后性能急剧下降，AtomicLong的自旋会称为瓶颈（N个线程CAS操作修改线程的值，每次只有一个成功过，其它N - 1失败，失败的不停的自旋直到成功，这样大量失败自旋的情况，一下子cpu就打高了。）
 
+LongAdder
 
-
-
-
-
-
-
-
-
-
-
-
-
+1. 原理
+   CAS + Base + Cell数组分散，空间换时间并分散了热点数据
+2. 场景
+   高并发的全局计算
+3. 缺陷
+   sum求和后还有计算线程修改结果的话，最后结果不够准确
