@@ -1408,19 +1408,216 @@ writeApi.flush();
 /client.close();
 ```
 
+# 数据
+
+## 数据流向
 
 
 
+## 数据定义
+
+### 物模型定义
+
+基本结构
+
+```json
+{
+    "properties":[...属性],
+    "functions":[...功能],
+    "events":[...事件],
+    "tags":[...标签]
+}
+```
+
+#### 属性
+
+用于定义设备属性，描述设备运行时的具体信息和状态。
+
+例如: 设备SN，当前CPU使用率等。 平台可主动下发指令获取设备属性，设备也可以通过消息上报属性。
+
+属性结构
+
+```json
+	{
+       "id": "cpu_usage", //属性标识
+       "name": "CPU使用率",
+       "valueType": {   //值类型
+         "type": "double", //类型标识,见类型表
+         "scale":2, //精度
+         "unit":"percent", //单位
+         "expands":{"key1":"value1"} //其他自定义拓展定义
+       },
+          "expands":{ //其他自定义拓展定义
+                "source":"rule", //来源
+                "type":[ //读写类型
+                    "read",
+                    "write",
+                    "report"
+                ],
+                "metrics":[ //指标配置
+                    {
+                        "id":"max",
+                        "name":"阈值",
+                        "value":[
+                            60
+                        ]
+                    }
+                ],
+                "storageType":"direct" //存储配置
+            }
+     }
+```
+
+#### 功能
+
+根据设备可供外部调用的指令或方法，定义设备功能。平台可主动调用设备功能。例如：播放语音，开关操作等。
+
+功能结构
+
+```json
+{
+   "id": "playVoice", //功能标识
+   "name": "播放声音", //名称
+   "async": false, //是否异步
+   "inputs": [  //输入参数
+     {
+       "id": "text",
+       "name": "文字内容",
+       "valueType": { //参数类型
+         "type": "string"
+       },
+       "expands":{"key1":"value1"} //其他自定义拓展定义
+     }
+   ],
+   "output": { //输出
+     "type": "boolean", //输出类型
+     "properties": [ //输出参数类型为Object时，可配置属性
+        {
+           "valueType": {
+               "type": "string"
+           },
+           "name": "名称",
+           "id": "id"
+        }
+     ]
+   },
+   "expands":{"key1":"value1"} //其他自定义拓展定义
+ }
+```
+
+#### 事件
+
+用于定义设备事件，接收设备运行时，主动上报给平台的信息。如: 定时上报设备属性, 设备报警等。
+
+数据结构:
+
+```json
+{
+    "id": "事件ID", 
+    "name": "事件名称",
+    "valueType": {
+      "type": "object",  //对象(结构体)类型
+      "properties": [    //对象属性(结构与属性定义相同)
+        {
+          "id": "属性ID",
+          "name": "属性名称",
+          "valueType": {
+            "type": "string"
+          }, 
+           "expands":{"gis":"lng"} //其他自定义拓展定义
+        }
+      ]
+    },
+    "expands":{"key1":"value1"} //其他自定义拓展定义
+ }
+```
 
 
 
+### topic定义
+
+#### 下行数据格式
+
+| 设备类型 | 名称           | topic                                                        |
+| -------- | -------------- | ------------------------------------------------------------ |
+| 直连     | 读取设备属性   | /{productId}/{deviceId}/properties/read                      |
+|          | 修改设备属性   | /{productId}/{deviceId}/properties/write                     |
+|          | 调用设备功能   | /{productId}/{deviceId}/function/invoke                      |
+| 网关     | 读取子设备属性 | /{productId}/{deviceId}/child/{childDeviceId}/properties/read |
+|          | 修改子设备属性 | /{productId}/{deviceId}/child/{childDeviceId}/properties/write |
+|          | 调用子设备功能 | /{productId}/{deviceId}/child/{childDeviceId}/function/invoke |
+
+#### 上行数据格式
+
+| 设备类型 | 名称                 | topic                                                        |
+| -------- | -------------------- | ------------------------------------------------------------ |
+| 直连     | 读取属性回复         | /{productId}/{deviceId}/properties/read/reply                |
+|          | 修改属性回复         | /{productId}/{deviceId}/properties/write/reply               |
+|          | 调用设备功能回复     | /{productId}/{deviceId}/function/invoke/reply                |
+|          | 上报设备事件         | /{productId}/{deviceId}/event/{eventId}                      |
+|          | 上报设备属性         | /{productId}/{deviceId}/properties/report                    |
+|          | 上报设备派生物模型   | /{productId}/{deviceId}/metadata/derived                     |
+| 网关     | 子设备属性上报       | /{GateWayProductId}/{GatewayProductDeviceID}/<br/>child/{GatewaySubProductDeviceId}/properties/report |
+|          | 子设备上线消息       | /{productId}/{deviceId}/child/{childDeviceId}/online         |
+|          | 子设备下线消息       | /{productId}/{deviceId}/child/{childDeviceId}/offline        |
+|          | 读取子设备属性回复   | /{productId}/{deviceId}/child-reply/{childDeviceId}/properties/read/reply |
+|          | 修改子设备属性回复   | /{productId}/{deviceId}/child-reply/{childDeviceId}/properties/write/reply |
+|          | 调用子设备功能回复   | /{productId}/{deviceId}/child-reply/{childDeviceId}/function/invoke/reply |
+|          | 上报子设备事件       | /{productId}/{deviceId}/child/{childDeviceId}/event/{eventId} |
+|          | 上报子设备派生物模型 | /{productId}/{deviceId}/child/{childDeviceId}/metadata/derived |
+
+### 消息定义
+
+#### 公共部分
+
+| 字段      | 类型   | 说明                       |
+| --------- | ------ | -------------------------- |
+| productId | string | 产品id 1738471418547605505 |
+| deviceId  | string | 设备id 1750123371036684289 |
+| messageId | string | 消息唯一标识 32位uuid      |
+| timestamp | long   | 时间戳                     |
+| method    | string | 上报类型：property、event  |
+| params    | json   | 具体数据内容               |
+
+属性上报
+
+| params部分 | 类型   | 说明           |
+| ---------- | ------ | -------------- |
+| {key}      | string | 定义的属性名称 |
+| value      |        | 属性值         |
+
+### 时序库
+
+行格式
 
 
 
+# 场景联动
 
+物模型构建在产品上
 
+场景联动构建在设备上
 
+属性设置，不需要方法key，直接topic 进行调用
 
+触发条件
+
+1. 设备触发
+   1. 属性上报（int值 > < = != in  string值 eq 枚举 in）
+   2. 事件上报（具体事件的输出参数值，判断同属性）
+2. 定时循环
+3. 设备上下线
+4. 手动触发执行
+
+触发动作
+
+1. 设备（本设备、其他设备）
+   1. 设置属性、读取属性（属性设置不属于功能调用，根据属性配置 (读写)进行选择）
+   2. 执行设备功能
+2. 发送通知
+   1. 微信公众号、小程序服务信息、企微机器人通知、钉钉
+   2. 短信、邮件
+3. webhook、api
 
 
 
