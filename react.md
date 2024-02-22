@@ -504,23 +504,195 @@ react hook 使用规则
 
 2.不可以在 if for 组件内部使用
 
+# Redux
 
+集中状态管理工具（sp存储值，借助本地文件），独立于 react 框架
 
+![image-20240221220606750](pic/image-20240221220606750.png)
 
+1. 首先是用户触发 action（在代码层面只有dispatch才能触发action）
+2. store会自动调用reducer函数并传入上一个状态的state和action，reducer函数会返回一个新的state
+3. store会监听state的变化并调用监听函数
+4. react组件就会重新渲染并生成新的view。
 
+## react中使用
 
+### 1.配套工具
 
+两个插件 Redux Toolkit、react-redux
 
+![image-20240221180438557](pic/image-20240221180438557.png)
 
+安装命令
 
+```shell
+npm i @reduxjs/toolkit react-redux
+```
 
+### 2.使用
 
+目录结构
 
+![image-20240221181413346](pic/image-20240221181413346.png)
 
+#### 实现一个 counter 功能
 
+![image-20240221181549205](pic/image-20240221181549205.png)
 
+**1.创建 slice**
 
+slice 封装了 action、reducer 在里面，主要属性有 name、initialState初始值、reducers定义处理方法
 
+创建完成后导出 slice、reducer、action
+
+counterStore.js
+
+```react
+import { createSlice } from "@reduxjs/toolkit";
+
+// 创建 对象
+const counterSlice = createSlice({
+    name: 'counter',
+    // 初始化值
+    initialState: {
+        count: 0
+    },
+    // 设置修改状态的方法
+    reducers: {
+        inscrement(state) {
+            state.count++
+        },
+        decrement(state) {
+            state.count--
+        },
+        add(state, action) {
+            state.count = state.count + action.payload
+        }
+    }
+})
+// 获取 action
+const { inscrement, decrement, add } = counterSlice.actions
+// 获取 reducer
+const reducer = counterSlice.reducer
+// 导出
+export { inscrement, decrement, add }
+export default reducer
+```
+
+**2.配置 store**
+
+告诉 store 使用这个 slice 的 reducer 方法去处理所有的 state 更新。
+
+index.js
+
+```react
+import { configureStore } from "@reduxjs/toolkit";
+import counterReducer from './modules/counterStore'
+
+const store = configureStore({
+    reducer: {
+        counter: counterReducer
+    }
+})
+
+export default store
+```
+
+**3.react 注入 store**
+
+使用 provider 标签，引入 store，这样子 view 中都可以使用
+
+index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './Redux';
+import store from './store';
+import { Provider } from 'react-redux';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+);
+
+```
+
+**4.使用 store 数据 ：useSelector**
+
+使用 useSelector 获取 state 的数据（count）
+
+**5.修改 store 数据 ：useDispatch**
+
+useDispatch 用来发送 action 进行数据替换
+
+Redux.js
+
+```react
+import { useDispatch, useSelector } from "react-redux";
+import { inscrement, decrement, add } from "./store/modules/counterStore";
+function App() {
+    const { count } = useSelector(state => state.counter)
+    const dispatch = useDispatch()
+    return (
+        <div>
+            hello<br />
+            <button onClick={() => dispatch(decrement())}> - </button>
+            {count}
+            <button onClick={() => dispatch(inscrement())}> + </button>
+            <button onClick={() => dispatch(add(5))}> +5 </button>
+        </div >
+    );
+}
+
+export default App;
+```
+
+实现效果：
+
+![image-20240222154613881](pic/image-20240222154613881.png)
+
+**异步请求**
+
+在 slice 中添加一个新方法，在新方法中返回异步请求的数据，在通过 dispatch 设置进去。相当于同步方法包装了一个异步方法。
+
+channelStore.js
+
+```react
+import { createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const channelSlice = createSlice({
+    name: 'channel',
+    initialState: {
+        channelList: []
+    },
+    reducers: {
+        setChannels(state, action) {
+            state.channelList = action.payload
+            console.log('payload=', action.payload)
+        }
+    }
+})
+const URL = '/gzh/web/weChatMiniProgram/v2/faq/list/1';
+
+// 异步请求
+const fetchChannelList = () => {
+    return async (dispatch) => {
+        const res = await axios.get(URL)
+        console.log('res.data.data=', res.data.data)
+        dispatch(setChannels(res.data.data))
+    }
+}
+
+const { setChannels } = channelSlice.actions
+const reducer = channelSlice.reducer
+
+export { fetchChannelList }
+export default reducer 
+```
 
 
 
