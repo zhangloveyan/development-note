@@ -190,3 +190,36 @@ http 状态码
 ![image-20240429195835046](pic/image-20240429195835046.png)
 
 bootstrap yaml相关加载，启动加载过程
+
+## 服务容错
+
+hystrix resilience4j sential
+
+1. 服务熔断
+2. 服务降级
+3. 服务限流
+4. 服务限时
+5. 服务预热
+6. 接近实时的监控
+7. 兜底的处理动作
+
+circuit breaker 一套规范和接口
+
+https://github.com/lmhmhl/Resilience4j-Guides-Chinese/blob/main/index.md
+
+断路器使用滑动窗口来存储和统计调用结果。数量、时间
+
+
+
+
+
+
+
+![image-20240501182032531](pic/image-20240501182032531.png)
+
+## 链路追踪
+
+micrometer tracing 门面工具
+
+skywalking
+
