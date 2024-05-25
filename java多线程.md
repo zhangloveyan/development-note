@@ -1544,22 +1544,131 @@ LongAdder
 2. 保证性能，精度代价
 3. LongAdder是每个线程拥有自己的槽，各个线程一般只对自己槽中的那个值进行CAS操作
 
-##### 总结
+原理：分散到多个 cell 中进行累加操作，取最终值时，再进行累加求和
+
+![image-20240522182145772](pic/java多线程/image-20240522182145772.png)
+
+![image-20240522182327492](pic/java多线程/image-20240522182327492.png)
+
+LongAdder 的扩展类
+
+LongAdder 只能从 0 开始，做加法，一些有初始值和其他计算方法无法实现，可以使用 LongAccumulator
+
+```java
+LongAdder longAdder = new LongAdder();
+longAdder.increment();
+longAdder.increment();
+longAdder.increment();
+longAdder.increment();
+System.out.println(longAdder.sum());
+
+LongAccumulator longAccumulator = new LongAccumulator(new LongBinaryOperator() {
+    @Override
+    public long applyAsLong(long left, long right) {
+        // 自定义计算规则
+        return left + right;
+    }
+// 自定义初始值
+}, 10);
+
+longAccumulator.accumulate(1);
+longAccumulator.accumulate(3);
+System.out.println(longAccumulator.get());
+```
+
+
+
+#### 总结
 
 AtomicLong
 
 1. 原理
    CAS+自旋
 2. 场景
-   低并发下的全局计算，AtomicLong能保证并发情况下计数的准确性，其内部通过CAS来解决并发安全性的问题
+   低并发下的全局计算，AtomicLong 能保证并发情况下计数的准确性，其内部通过 CAS 来解决并发安全性的问题
 3. 缺陷
-   高并发后性能急剧下降，AtomicLong的自旋会称为瓶颈（N个线程CAS操作修改线程的值，每次只有一个成功过，其它N - 1失败，失败的不停的自旋直到成功，这样大量失败自旋的情况，一下子cpu就打高了。）
+   高并发后性能急剧下降，AtomicLong 的自旋会称为瓶颈（N个线程CAS操作修改线程的值，每次只有一个成功过，其它N - 1失败，失败的不停的自旋直到成功，这样大量失败自旋的情况，一下子cpu就打高了。）
 
 LongAdder
 
 1. 原理
-   CAS + Base + Cell数组分散，空间换时间并分散了热点数据
+   CAS + Base + Cell 数组分散，空间换时间并分散了热点数据
 2. 场景
    高并发的全局计算
 3. 缺陷
-   sum求和后还有计算线程修改结果的话，最后结果不够准确
+   sum 求和后还有计算线程修改结果的话，最后结果不够准确
+
+## ThreaLocal
+
+主要解决了让每个线程有自己的值，通过 get set 方法，获取修改值的副本，避免线程安全问题。
+
+继承关系
+
+![image-20240522201139932](pic/java多线程/image-20240522201139932.png)
+
+为何使用软引用？为什么导致内存泄露？
+
+四种对象引用（强软弱虚）
+
+![image-20240522201647622](pic/java多线程/image-20240522201647622.png)
+
+强：oom 也不回收，new 对象都是
+
+软：不足回收，够了不回收 
+
+```JAVA
+SoftReference<Object> softReference = new SoftReference<>(new Object());
+```
+
+弱：gc 一启动，马上就回收（高速缓存、预览图片）
+
+```java
+WeakReference<Object> weakReference = new WeakReference<>(new Object());
+```
+
+虚：用的很少
+
+引用关系
+
+![image-20240523180523341](pic/java多线程/image-20240523180523341.png)
+
+1.为什么不是强引用？
+
+强引用时，如果对应的 threadlocal 对象销毁时，有 map 中的 key 指向它，这会导致对象无法销毁，造成内存泄露，弱引用则可一定程度避免。
+
+2.为什么还可能泄露？
+
+线程池一般都是复用，造成大量的 null -> value 冗余，还会泄露。
+
+使用完 要调用 remove 清除无效引用。
+
+3.为什么不直接使用 map，还要用 threadlocal 包装
+
+只有 map，那么只能保存一个 value，而可以通过 new 多个 threadlocal 进行分别保存，类似：
+
+```
+userLocal -> 
+t1 : userA
+t2 : userB
+t3 : userC
+nameLocal -> 
+t1 : nameA
+t2 : nameB
+t3 : nameC
+```
+
+4.为什么不放在 thread 中维护
+
+threadlocalmap 不一定会使用，会增加成本。通过 threadlocal 管控。
+
+## 内存布局
+
+### 对象组成
+
+对象头、实例数据、对齐填充
+
+#### 对象头
+
+类型指针：类型信息模板，来自于哪里 class 的内容
+
+![image-20240524115922407](pic/java多线程/image-20240524115922407.png)
