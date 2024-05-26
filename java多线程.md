@@ -1672,3 +1672,47 @@ threadlocalmap 不一定会使用，会增加成本。通过 threadlocal 管控�
 类型指针：类型信息模板，来自于哪里 class 的内容
 
 ![image-20240524115922407](pic/java多线程/image-20240524115922407.png)
+
+分代年龄是 4 位，所以就是 0-15 ，配置大于 15 时，启动失败。
+
+压缩指针，默认开启
+
+#### jol 工具
+
+全称：java object layout，展现 java 对象
+
+使用：pom 引入
+
+```xml
+<dependency>
+            <groupId>org.openjdk.jol</groupId>
+            <artifactId>jol-core</artifactId>
+            <version>0.9</version>
+</dependency>
+```
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+        // 虚拟机详细信息
+//        System.out.println(VM.current().details());
+//        # Running 64-bit HotSpot VM.
+//        # Using compressed oop with 3-bit shift.
+//        # Using compressed klass with 3-bit shift.
+//        # Objects are 8 bytes aligned.
+//        # Field sizes by type: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
+//        # Array element sizes: 4, 1, 1, 2, 2, 4, 4, 8, 8 [bytes]
+    }
+}
+```
+
+对象信息
+
+```java
+ // 打印 object 对象信息
+Object o = new Object();
+System.out.println(ClassLayout.parseInstance(o).toPrintable());
+```
+
+![image-20240526165318590](pic/java多线程/image-20240526165318590.png)
