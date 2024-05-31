@@ -1716,3 +1716,100 @@ System.out.println(ClassLayout.parseInstance(o).toPrintable());
 ```
 
 ![image-20240526165318590](pic/java多线程/image-20240526165318590.png)
+
+打印内存等配置信息
+
+```java
+java -XX:+PrintCommandLineFlags -version
+```
+
+![image-20240527155755513](pic/java多线程/image-20240527155755513.png)
+
+#### synchronized和对象头说明
+
+![image-20240529161704189](pic/java多线程/image-20240529161704189.png)
+
+偏向锁：线程id
+
+轻量锁：指向线程栈中 lock record 指针
+
+关于 lock record 指针：JVM 为每个线程在当前栈帧中创建存储锁记录的空间，称为 displaced mark word，如果是轻量级锁，会把锁的 markword 复制到 displaced mark word 中，线程使用 cas 将锁的 markword 替换为指向锁记录的指针。成功则获取锁，失败，则自旋。
+
+重量锁：堆中 monitor 对象指针
+
+#### markword 对象头对照
+
+![image-20240529174714993](pic/java多线程/image-20240529174714993.png)
+
+代码对照
+
+![image-20240529175254506](pic/java多线程/image-20240529175254506.png)
+
+#### 查看偏向锁配置
+
+15默认关闭、17废弃，因为繁琐，维护成本高
+
+```java
+java -XX:+PrintFlagsInitial | grep BiasedLock*
+```
+
+![image-20240529181726778](pic/java多线程/image-20240529181726778.png)
+
+#### 偏向锁、轻量锁、重量锁，hashcode 保存在哪里？
+
+当一个对象已经计算过一致性哈希码后，它就再也无法进入偏向锁状态了;而当一个对象当前正处于偏向锁状态，又收到需要计算其一致性哈希码请求时，它的偏向状态会被立即撤销，并且锁会膨胀为重量级锁
+
+在重量级锁的实现中，对象头指向了重量级锁的位置，代表重量级锁的ObiectMonitor类里有字段可以记录非加锁状态（标志位为“01”）下的Mark Word，其中自然可以存储原来的哈希码。
+
+### 锁升级
+
+![67981528521a27316da76f7f4f7a200a](pic/java多线程/67981528521a27316da76f7f4f7a200a.png)
+
+锁消除
+
+每个线程一个锁，jit 无视它，没有用，消除了锁的作用
+
+锁粗化
+
+方法中首尾相接，前后都是一个锁对象，会合并成一个大块
+
+## AQS
+
+抽象队列同步器，主要解决锁分配给谁的问题。通过抽象的 FIFO 队列来完成资源获取线程的排队工作，并通过一个 int 类变量表示持有锁的状态
+
+![image-20240530160002122](pic/java多线程/image-20240530160002122.png)
+
+关于 node 节点类的字段含义
+
+![image-20240530181357492](pic/java多线程/image-20240530181357492.png)
+
+#### ReentrantLock
+
+```
+lock.lock();
+```
+
+addWaiter 线程加入等待队列
+
+![image-20240530200825955](pic/java多线程/image-20240530200825955.png)
+
+acquireQueued 抢占不成阻塞
+
+![image-20240530201756456](pic/java多线程/image-20240530201756456.png)
+
+-1表示后面一个节点阻塞了，有唤醒下一个节点的责任
+
+```
+lock.unlock();
+```
+
+tryRelease 尝试释放
+
+![image-20240530202430949](pic/java多线程/image-20240530202430949.png)
+
+unparkSuccessor 解锁线程
+
+![image-20240530202723596](pic/java多线程/image-20240530202723596.png)
+
+cancelAcquire 取消，可能不排了，取消了之后的处理
+
