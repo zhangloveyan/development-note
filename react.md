@@ -388,7 +388,7 @@ export default Context2;
 
 ## 10.useEffect
 
-创建不是又事件引起而是由渲染本身引起的操作（view 初始化完成，onstart 里面 http 请求），比如：发送 ajax、更改 dom
+创建不是由事件引起而是由渲染本身引起的操作（view 初始化完成，onstart 里面 http 请求），比如：发送 ajax、更改 dom
 
 语法：`useEffect(() => { },[])`
 
@@ -696,9 +696,31 @@ export default reducer
 
 
 
+# 插播
 
+## 1.单向数据流
 
+只能通过 actions 修改 state，从而触发 view 更新。
 
+子组件只能监听父组件传来的 props 修改自己的 state，无法修改父组件的数据。
+
+Android 里面，id.set（数据）、然后更新
+
+![image-20240611195935931](pic/react/image-20240611195935931.png)
+
+## 2.虚拟 DOM
+
+本质：维持一个对象构成的虚拟 DOM 树，每次变动后通过 React 的 diff 算法（fiber）调和计算出差值触发渲染。
+
+总结：哪里变了改哪里，Android 里面的局部刷新。
+
+## 3.JSX 语法
+
+## 4.声明式编程
+
+## 5.React Hook
+
+16.8 引入，允许在函数组件中使用状态和其他 react 特性，不需要写类组件。
 
 
 
