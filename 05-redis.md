@@ -36,6 +36,14 @@ vim redis.conf  //修改配置文件
 
 ![ ](pic/05-redis/image-20240505164243579.png)
 
+批量删除：
+
+```shell
+./redis-cli -h IP -p PORT -a PASSWORD keys 'uprefix:*' | xargs  ./redis-cli -h IP  -p PORT -a PASSWORD del
+```
+
+
+
 #### config 命令可查询配置
 
 ![image-20240506140957411](pic/05-redis/image-20240506140957411.png)
