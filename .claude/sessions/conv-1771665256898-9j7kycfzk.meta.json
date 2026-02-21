@@ -3,8 +3,8 @@
   "title": "Optimize Obsidian learning documentation structure",
   "titleGenerationStatus": "success",
   "createdAt": 1771665256898,
-  "updatedAt": 1771665551485,
-  "lastResponseAt": 1771665551485,
+  "updatedAt": 1771670189432,
+  "lastResponseAt": 1771670189432,
   "sessionId": "cc97f856-73eb-471b-8130-37aad08e5ccf",
   "sdkSessionId": "cc97f856-73eb-471b-8130-37aad08e5ccf",
   "usage": {
@@ -15,5 +15,82 @@
     "contextWindow": 200000,
     "contextTokens": 0,
     "percentage": 0
+  },
+  "subagentData": {
+    "tooluse_0UW27Jh2l35kl1Nj9uR7xd": {
+      "id": "tooluse_0UW27Jh2l35kl1Nj9uR7xd",
+      "description": "拆分整理Java文档",
+      "prompt": "你需要将原始的 01-java.md 文档拆分为多个主题文档，并按照新的文档规范进行整理。\n\n任务要求：\n1. 读取 01-java.md 文档内容\n2. 按照以下主题拆分：\n   - Java集合框架.md (ArrayList、HashMap、LinkedList等集合相关内容)\n   - Java并发编程.md (线程、锁、并发相关内容)\n   - Java虚拟机.md (JVM、GC、内存相关内容)\n   - Java基础语法.md (基础语法、数据类型等基础内容)\n   - Java问题解决.md (从原文档中提取的问题和解决方案)\n\n3. 每个文档都要按照 99-资源/文档规范.md 中的模板格式编写\n4. 添加适当的标签和知识关联\n5. 将文档保存到 01-编程语言/Java/ 目录下\n\n注意：\n- 保持原有内容的完整性，不要丢失重要信息\n- 添加合适的标签便于搜索\n- 建立文档间的关联链接\n- 使用相对路径引用文件",
+      "mode": "async",
+      "isExpanded": false,
+      "status": "completed",
+      "toolCalls": [],
+      "asyncStatus": "completed",
+      "agentId": "a9fac39",
+      "startedAt": 1771667856602,
+      "outputToolId": "tooluse_OlCV9YK2rRAihBme45rjRO",
+      "result": "<retrieval_status>success</retrieval_status>\n\n<task_id>a9fac39</task_id>\n\n<task_type>local_agent</task_type>\n\n<status>completed</status>\n\n<output>\n## 任务完成总结\n\n我已经成功将原始的 `01-java.md` 文档按照主题拆分为5个专业的技术文档，并严格按照文档规范进行了整理：\n\n### 📁 创建的文档结构\n```\n01-编程语言/Java/\n├── README.md              # 文档索引和导航\n├── Java基础语法.md        # 数据类型、面向对象、泛型等基础概念\n├── Java集合框架.md        # ArrayList、HashMap等集合类原理\n├── Java并发编程.md        # 多线程、同步机制、线程池等\n├── Java虚拟机.md          # JVM内存模型、垃圾回收、调优\n└── Java问题解决.md        # 常见问题诊断和解决方案\n```\n\n### ✅ 完成的工作内容\n\n1. **文档拆分**：将原始26000+字的大文档按主题拆分为5个专业文档\n2. **规范化整理**：每个文档都按照 `99-资源/文档规范.md` 的模板格式编写\n3. **内容优化**：\n   - 添加了YAML前置元数据（标签、创建时间、重要程度等）\n   - 使用核心要点突出重点内容\n   - 添加了代码示例和性能对比表格\n   - 建立了文档间的关联链接\n4. **知识关联**：创建了完整的知识关联体系和学习路径\n5. **索引导航**：创建了README.md作为文档索引，提供学习路径建议\n\n### 🎯 文档特点\n\n- **结构清晰**：每个文档都有明确的主题和层次结构\n- **内容完整**：保持了原有内容的完整性，没有丢失重要信息\n- **便于搜索**：添加了丰富的标签系统，便于快速定位\n- **实用性强**：包含了大量代码示例和实际问题解决方案\n- **关联性好**：文档间建立了清晰的知识关联关系\n\n所有文档都已保存到 `D:\\code\\github\\development-note\\01-编程语言\\Java\\` 目录下，可以直接使用。\n</output>",
+      "completedAt": 1771668144755
+    },
+    "tooluse_m3LFBRElbARRhlS5a3XgT3": {
+      "id": "tooluse_m3LFBRElbARRhlS5a3XgT3",
+      "description": "拆分整理Spring文档",
+      "prompt": "你需要将原始的 02-springboot.md 和 03-springcloud.md 文档拆分整理为Spring技术栈文档。\n\n任务要求：\n1. 读取 02-springboot.md 和 03-springcloud.md 文档内容\n2. 按照以下主题整理：\n   - Spring核心原理.md (IOC、AOP、Bean生命周期等核心概念)\n   - SpringBoot实战.md (SpringBoot相关的实战内容)\n   - SpringCloud微服务.md (微服务架构、服务发现、配置中心等)\n   - Spring问题解决.md (从原文档中提取的问题和解决方案)\n\n3. 每个文档都要按照 99-资源/文档规范.md 中的模板格式编写\n4. 添加适当的标签和知识关联\n5. 将文档保存到 02-框架技术/Spring/ 目录下\n\n注意：\n- 保持原有内容的完整性\n- 添加合适的标签便于搜索\n- 建立文档间的关联链接\n- 使用相对路径引用文件",
+      "mode": "async",
+      "isExpanded": false,
+      "status": "completed",
+      "toolCalls": [],
+      "asyncStatus": "completed",
+      "agentId": "aaae28a",
+      "startedAt": 1771667863739,
+      "outputToolId": "tooluse_HJsj4RUcmOS7m2L7ndvp7T",
+      "result": "<retrieval_status>success</retrieval_status>\n\n<task_id>aaae28a</task_id>\n\n<task_type>local_agent</task_type>\n\n<status>completed</status>\n\n<output>\n## 任务完成总结\n\n我已经成功将原始的Spring相关文档拆分整理为4个专门的技术文档，全部保存在 `D:/code/github/development-note/02-框架技术/Spring/` 目录下：\n\n### 📁 创建的文档结构\n\n1. **Spring核心原理.md** (8.7KB)\n   - IOC容器原理和底层实现\n   - Bean生命周期详解\n   - 循环依赖解决机制（三级缓存）\n   - AOP实现原理\n   - Spring事务管理和传播特性\n   - BeanFactory vs FactoryBean\n   - Spring中的设计模式\n\n2. **SpringBoot实战.md** (10.8KB)\n   - 核心注解@SpringBootApplication\n   - 自动装配原理和流程\n   - Starter机制详解\n   - SpringMVC完整请求处理流程\n   - HTTP请求处理全过程\n   - 实战代码示例（Controller、配置类、异常处理）\n   - 配置管理和性能优化\n\n3. **SpringCloud微服务.md** (13.1KB)\n   - 注册中心（Nacos）架构和原理\n   - 负载均衡算法和实现\n   - OpenFeign跨进程通讯\n   - Sentinel流量控制和熔断机制\n   - Gateway网关三大核心（路由、断言、过滤器）\n   - Seata分布式事务解决方案\n   - 链路追踪和权限认证\n\n4. **Spring问题解决.md** (9.3KB)\n   - 10个高频问题的现象、原因和解决方案\n   - 调试技巧（日志、Actuator、Arthas等）\n   - 性能分析工具使用\n   - 性能优化技巧\n   - 常用排查命令\n\n### ✅ 完成的工作\n\n- ✅ 按照文档规范模板格式编写，包含YAML前置元数据\n- ✅ 添加了合适的标签便于搜索和分类\n- ✅ 建立了文档间的关联链接\n- ✅ 使用相对路径引用图片和其他文件\n- ✅ 保持了原有内容的完整性和技术准确性\n- ✅ 按主题进行了清晰的分类和整理\n- ✅ 添加了实用的代码示例和配置示例\n\n所有文档都遵循了统一的格式规范，便于后续维护和扩展。原始的 `02-springboot.md` 和 `03-springcloud.md` 文件保持不变，新的Spring技术栈文档已经完整创建。\n</output>",
+      "completedAt": 1771668160387
+    },
+    "tooluse_2DtnJCv3TBhzHHxsg1xahy": {
+      "id": "tooluse_2DtnJCv3TBhzHHxsg1xahy",
+      "description": "拆分整理数据库文档",
+      "prompt": "你需要将原始的 04-mysql.md 和 05-redis.md 文档拆分整理为数据存储技术栈文档。\n\n任务要求：\n1. 读取 04-mysql.md 和 05-redis.md 文档内容\n2. 按照以下主题整理：\n   - MySQL基础原理.md (MySQL基础概念、索引、事务等原理)\n   - MySQL性能优化.md (性能优化、调优相关内容)\n   - MySQL问题解决.md (MySQL常见问题和解决方案)\n   - Redis核心原理.md (Redis数据结构、持久化等核心原理)\n   - Redis实战应用.md (Redis实战应用、集群部署等)\n   - Redis问题解决.md (Redis常见问题和解决方案)\n\n3. 每个文档都要按照 99-资源/文档规范.md 中的模板格式编写\n4. 添加适当的标签和知识关联\n5. 将文档保存到 03-数据存储/MySQL/ 和 03-数据存储/Redis/ 目录下\n\n注意：\n- 保持原有内容的完整性\n- 添加合适的标签便于搜索\n- 建立文档间的关联链接\n- 使用相对路径引用文件",
+      "mode": "async",
+      "isExpanded": false,
+      "status": "completed",
+      "toolCalls": [],
+      "asyncStatus": "completed",
+      "agentId": "a6879b2",
+      "startedAt": 1771667871887,
+      "outputToolId": "tooluse_DelDrHZktqYl8HWAf326z0",
+      "result": "<retrieval_status>success</retrieval_status>\n\n<task_id>a6879b2</task_id>\n\n<task_type>local_agent</task_type>\n\n<status>completed</status>\n\n<output>\n完美！我已经成功完成了MySQL和Redis文档的拆分整理工作。让我总结一下完成的任务：\n\n## 📋 任务完成总结\n\n### ✅ 已完成的工作\n\n**MySQL文档拆分**：\n- **D:\\code\\github\\development-note\\03-数据存储\\MySQL\\MySQL基础原理.md** - 包含数据类型、逻辑架构、物理架构、索引原理、存储引擎等核心概念\n- **D:\\code\\github\\development-note\\03-数据存储\\MySQL\\MySQL性能优化.md** - 包含索引优化、查询优化、参数调优、架构优化、性能监控等内容\n- **D:\\code\\github\\development-note\\03-数据存储\\MySQL\\MySQL问题解决.md** - 包含常见问题解决方案、调试技巧、故障排查流程等\n\n**Redis文档拆分**：\n- **D:\\code\\github\\development-note\\03-数据存储\\Redis\\Redis核心原理.md** - 包含数据结构、持久化机制、内存管理、单线程模型等核心原理\n- **D:\\code\\github\\development-note\\03-数据存储\\Redis\\Redis实战应用.md** - 包含缓存应用、分布式锁、集群部署、高级应用场景、性能优化等实战内容\n- **D:\\code\\github\\development-note\\03-数据存储\\Redis\\Redis问题解决.md** - 包含高频问题解决方案、调试技巧、故障排查工具等\n\n### 📝 文档特点\n\n1. **规范格式**：所有文档都按照99-资源/文档规范.md的模板格式编写\n2. **完整标签**：每个文档都包含合适的标签，便于搜索和分类\n3. **知识关联**：建立了文档间的相互链接，形成知识网络\n4. **实用性强**：包含大量代码示例、配置示例和实际解决方案\n5. **结构清晰**：使用emoji图标和表格，提高可读性\n\n### 🔗 文档关联网络\n\n文档之间建立了完整的关联链接：\n- MySQL三个文档相互关联\n- Redis三个文档相互关联  \n- MySQL和Redis文档之间也有交叉引用\n- 与原有的SpringBoot、Docker等文档建立了关联\n\n这样的文档结构便于学习和查阅，形成了完整的数据存储技术栈知识体系。\n</output>",
+      "completedAt": 1771668329559
+    },
+    "tooluse_kwcXBK3yQxSGwtZIC5c13W": {
+      "id": "tooluse_kwcXBK3yQxSGwtZIC5c13W",
+      "description": "整理其他技术文档",
+      "prompt": "你需要整理剩余的技术文档，包括前端、中间件、计算机基础等。\n\n任务要求：\n1. 读取以下文档内容：\n   - 20-react.md\n   - 21-node.md\n   - 06-mq.md\n   - 07-kafka.md\n   - 08-docker.md\n   - 09-nginx-linux.md\n   - 30-计算机操作系统.md\n   - 31-计算机网络.md\n   - 32-计算机组成原理.md\n   - 33-数据结构与算法.md\n\n2. 按照以下结构整理：\n   - 01-编程语言/JavaScript/JavaScript核心概念.md (从21-node.md中提取JS相关内容)\n   - 01-编程语言/JavaScript/JavaScript异步编程.md\n   - 01-编程语言/JavaScript/JavaScript问题解决.md\n   - 01-编程语言/Node.js/Node.js基础.md\n   - 02-框架技术/React/React核心概念.md\n   - 02-框架技术/React/React问题解决.md\n   - 04-中间件/消息队列/消息队列原理.md (整合06-mq.md内容)\n   - 04-中间件/消息队列/Kafka实战.md\n   - 04-中间件/消息队列/消息队列问题解决.md\n   - 04-中间件/容器化/Docker核心概念.md\n   - 04-中间件/容器化/Docker问题解决.md\n   - 04-中间件/Web服务器/Nginx配置实战.md\n   - 04-中间件/Web服务器/Nginx问题解决.md\n   - 05-计算机基础/操作系统原理.md\n   - 05-计算机基础/计算机网络.md\n   - 05-计算机基础/计算机组成原理.md\n   - 05-计算机基础/数据结构与算法.md\n\n3. 每个文档都要按照 99-资源/文档规范.md 中的模板格式编写\n4. 添加适当的标签和知识关联\n\n注意：\n- 保持原有内容的完整性\n- 添加合适的标签便于搜索\n- 建立文档间的关联链接\n- 使用相对路径引用文件",
+      "mode": "async",
+      "isExpanded": false,
+      "status": "completed",
+      "toolCalls": [],
+      "asyncStatus": "completed",
+      "agentId": "a4603d0",
+      "startedAt": 1771667882504,
+      "outputToolId": "tooluse_RLawmWiSrcV715V4AN8uU0",
+      "result": "<retrieval_status>success</retrieval_status>\n\n<task_id>a4603d0</task_id>\n\n<task_type>local_agent</task_type>\n\n<status>completed</status>\n\n<output>\n## 📋 技术文档整理完成总结\n\n我已经成功完成了剩余技术文档的整理工作，按照规范的模板格式创建了以下文档结构：\n\n### 📁 整理完成的文档结构\n\n#### 01-编程语言\n- **JavaScript/**\n  - `JavaScript核心概念.md` - JS语言特性、数据类型、作用域等\n  - `JavaScript异步编程.md` - Promise、async/await、事件循环\n  - `JavaScript问题解决.md` - 常见问题和调试技巧\n\n- **Node.js/**\n  - `Node.js基础.md` - 运行时环境、模块系统、npm管理\n\n#### 02-框架技术\n- **React/**\n  - `React核心概念.md` - 组件化、JSX、Hooks、状态管理\n  - `React问题解决.md` - 渲染问题、性能优化、调试技巧\n\n#### 04-中间件\n- **消息队列/**\n  - `消息队列原理.md` - Spring Integration、MQTT、RabbitMQ原理\n  - `Kafka实战.md` - 分布式流处理、集群部署、性能优化\n  - `消息队列问题解决.md` - 消息丢失、重复消费、性能调优\n\n- **容器化/**\n  - `Docker核心概念.md` - 容器化技术、Kubernetes、镜像管理\n  - `Docker问题解决.md` - 容器调试、网络问题、存储优化\n\n- **Web服务器/**\n  - `Nginx配置实战.md` - 反向代理、负载均衡、SSL配置\n  - `Nginx问题解决.md` - 502错误、性能调优、缓存优化\n\n#### 05-计算机基础\n- `操作系统原理.md` - 进程管理、内存管理、文件系统\n- `计算机网络.md` - TCP/IP协议、HTTP/HTTPS、网络编程\n- `计算机组成原理.md` - CPU架构、存储系统、性能分析\n- `数据结构与算法.md` - 基础数据结构、排序算法、复杂度分析\n\n### ✨ 文档特色\n\n1. **统一格式** - 所有文档都按照 `99-资源/文档规范.md` 的模板格式编写\n2. **完整内容** - 保留了原有文档的核心内容，并进行了结构化整理\n3. **实用代码** - 包含大量可运行的代码示例和配置文件\n4. **知识关联** - 建立了文档间的交叉引用和知识链接\n5. **标签系统** - 添加了便于搜索和分类的标签\n\n### 🔗 知识体系\n\n通过相对路径引用和标签系统，建立了完整的知识关联网络，便于：\n- 快速定位相关技术文档\n- 理解技术间的依赖关系\n- 系统性学习和复习\n\n所有文档都已按照要求整理完成，形成了结构清晰、内容丰富的技术知识库。\n</output>",
+      "completedAt": 1771668795640
+    },
+    "tooluse_Dl8CSUmdc5G649AwOlEZdZ": {
+      "id": "tooluse_Dl8CSUmdc5G649AwOlEZdZ",
+      "description": "整理项目实战文档",
+      "prompt": "你需要整理项目实战相关的文档。\n\n任务要求：\n1. 读取以下文档内容：\n   - 10-项目问题.md\n   - 11-代码规则.md\n   - 12-idea.md\n   - ubuntu部署踩坑笔记.md\n   - 40-出海.md\n   - 41-IOT.md\n\n2. 按照以下结构整理：\n   - 06-项目实战/项目问题总结.md (整理10-项目问题.md)\n   - 06-项目实战/代码规范指南.md (整理11-代码规则.md)\n   - 06-项目实战/性能优化实践.md (从各文档中提取性能优化相关内容)\n   - 07-工具环境/IDEA使用技巧.md\n   - 07-工具环境/部署运维实践.md (整理ubuntu部署踩坑笔记.md)\n   - 07-工具环境/开发工具问题解决.md\n   - 08-行业应用/出海业务实践.md\n   - 08-行业应用/物联网技术.md\n\n3. 每个文档都要按照 99-资源/文档规范.md 中的模板格式编写\n4. 添加适当的标签和知识关联\n\n注意：\n- 保持原有内容的完整性\n- 添加合适的标签便于搜索\n- 建立文档间的关联链接\n- 使用相对路径引用文件",
+      "mode": "async",
+      "isExpanded": false,
+      "status": "completed",
+      "toolCalls": [],
+      "asyncStatus": "completed",
+      "agentId": "ae48bb6",
+      "startedAt": 1771667891210,
+      "outputToolId": "tooluse_QrVYlkpWBFVzMgbHnZ8C4t",
+      "result": "<retrieval_status>success</retrieval_status>\n\n<task_id>ae48bb6</task_id>\n\n<task_type>local_agent</task_type>\n\n<status>completed</status>\n\n<output>\n完美！我已经成功整理了项目实战相关的文档。让我总结一下完成的工作：\n\n## 📋 文档整理完成总结\n\n### 🎯 已完成的文档重组\n\n#### 📁 06-项目实战/\n- **项目问题总结.md** - 整理了 `10-项目问题.md` 的内容，包含：\n  - SpringBoot/MyBatis 配置问题\n  - 内存泄露分析和 JVM 调优\n  - Redis 性能问题诊断\n  - 微服务实战技巧（灰度发布、优雅下线等）\n\n- **代码规范指南.md** - 基于 `11-代码规则.md` 整理，包含：\n  - RESTful API 设计规范\n  - 接口命名和参数传递规范\n  - Controller 层标准实现\n  - 统一响应格式设计\n\n- **性能优化实践.md** - 从各文档提取性能优化内容，包含：\n  - JVM 内存优化和调优\n  - Redis 性能分析和优化\n  - 数据库查询优化\n  - 微服务性能调优\n\n#### 📁 07-工具环境/\n- **IDEA使用技巧.md** - 整理 `12-idea.md`，包含：\n  - IDEA 2023.2+ 个性化配置\n  - 必备插件推荐和使用\n  - 性能优化配置\n  - 高效操作技巧\n\n- **部署运维实践.md** - 整理 `ubuntu部署踩坑笔记.md`，包含：\n  - Docker Compose v2 版本问题解决\n  - Linux 用户权限模型\n  - 容器权限和文件归属问题\n  - 网络配置和 SSH 连接问题\n\n- **开发工具问题解决.md** - 补充的工具问题解决文档，包含：\n  - IDEA 常见问题诊断\n  - Maven 和 Git 配置问题\n  - 环境配置和网络问题\n  - 调试和性能问题\n\n#### 📁 08-行业应用/\n- **出海业务实践.md** - 整理 `40-出海.md`，包含：\n  - 市场调研和需求分析方法\n  - 低代码平台和技术选型\n  - SEO 优化和推广策略\n  - 商业变现和成功案例\n\n- **物联网技术.md** - 整理 `41-IOT.md`，包含：\n  - 时序数据库基础概念\n  - LSM 树存储引擎原理\n  - TDengine 实战部署和使用\n  - 数据采集和性能优化\n\n### ✨ 文档特色\n\n1. **统一格式** - 所有文档都按照 `99-资源/文档规范.md` 的模板格式编写\n2. **标签体系** - 添加了完整的标签系统，便于搜索和关联\n3. **知识关联** - 建立了文档间的相互引用链接\n4. **实战导向** - 重点突出实际应用和问题解决\n5. **结构清晰** - 使用核心要点、详细内容、代码示例的层次结构\n\n### 🔗 文档关联网络\n\n通过相对路径建立了完整的文档关联网络，用户可以在相关主题间快速跳转，形成了知识图谱式的学习体验。\n\n所有文档都已按照要求完成整理，保持了原有内容的完整性，同时提升了可读性和实用性。\n</output>",
+      "completedAt": 1771668654923
+    }
   }
 }
