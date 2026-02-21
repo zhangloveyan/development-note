@@ -1,0 +1,19 @@
+{
+  "id": "conv-1771665256898-9j7kycfzk",
+  "title": "Optimize Obsidian learning documentation structure",
+  "titleGenerationStatus": "success",
+  "createdAt": 1771665256898,
+  "updatedAt": 1771665551485,
+  "lastResponseAt": 1771665551485,
+  "sessionId": "cc97f856-73eb-471b-8130-37aad08e5ccf",
+  "sdkSessionId": "cc97f856-73eb-471b-8130-37aad08e5ccf",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}
